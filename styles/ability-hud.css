@@ -1,0 +1,446 @@
+/* ============================================================
+ *  Draw Steel - Ability HUD  |  Styles
+ * ============================================================ */
+
+/* ---- Application wrapper — position:fixed, placed by JS above hotbar ---- */
+#ds-ability-hud {
+  position: fixed;
+  display: flex;
+  pointer-events: none;
+  z-index: 70;
+  /* left, bottom, width set by JS */
+}
+
+/* ---- Bar container ---- */
+.dsahud-bar {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  overflow: visible;
+  pointer-events: auto;
+  flex-wrap: nowrap; /* overridden to wrap by JS when hotbar wraps */
+}
+
+.dsahud-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  background: rgba(20, 20, 20, 0.85);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  flex: 1 0 auto;
+  min-width: max-content;
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+
+.dsahud-button:hover {
+  background: rgba(50, 50, 50, 0.95);
+  border-color: rgba(180, 180, 180, 0.7);
+}
+
+.dsahud-button-icon {
+  font-size: 15px;
+}
+
+.dsahud-button-label {
+  opacity: 0.9;
+}
+
+/* ---- Popup menu (appears on hover) ---- */
+.dsahud-popup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 240px;
+  max-width: 380px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: rgba(15, 15, 15, 0.95);
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  z-index: 71;
+}
+
+.dsahud-popup.active {
+  display: block;
+}
+
+/* ---- Section inside popup ---- */
+.dsahud-section {
+  margin-bottom: 6px;
+}
+
+.dsahud-section:last-child {
+  margin-bottom: 0;
+}
+
+.dsahud-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.55;
+  padding: 2px 6px 4px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  margin-bottom: 4px;
+}
+
+.dsahud-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---- Individual action items (elliptic pill buttons) ---- */
+.dsahud-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  background: rgba(40, 40, 40, 0.6);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12.5px;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dsahud-action:hover {
+  background: rgba(70, 70, 70, 0.8);
+  border-color: rgba(180, 180, 180, 0.5);
+}
+
+.dsahud-action-img {
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.dsahud-action-emoji {
+  flex-shrink: 0;
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+}
+
+.dsahud-action-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.92;
+}
+
+.dsahud-action-cost {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.6;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+/* ---- Scrollbar styling ---- */
+.dsahud-popup::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dsahud-popup::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dsahud-popup::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 3px;
+}
+
+/* ---- Fallback Item Tooltip (mirrors DS Plus style, used when DS Plus is not active) ---- */
+#dsahud-tooltip {
+  --dsp-surface-raised: light-dark(#e0d9ce, #1e1e1e);
+  --dsp-border-light:   light-dark(#d4c8b8, #3a302a);
+  --dsp-border:         light-dark(#c4b8a8, #2a2020);
+  --dsp-radius-md:      8px;
+  --dsp-radius-sm:      4px;
+  --dsp-radius-full:    9999px;
+  --dsp-text:           light-dark(#2a2520, #e8e0d4);
+  --dsp-text-light:     light-dark(#5a5248, #9a8e80);
+  --dsp-text-faint:     light-dark(#8a8278, #5a5248);
+  --dsp-accent:         light-dark(#a88b4a, #c8aa6e);
+  --dsp-shadow:         light-dark(rgba(0,0,0,.2), rgba(0,0,0,.6));
+
+  position: fixed;
+  display: none;
+  z-index: 72;
+  width: 300px;
+  max-height: 60vh;
+  overflow: hidden;
+  font-size: 13px;
+  text-align: start;
+  color: var(--dsp-text-light);
+  border-radius: var(--dsp-radius-md);
+  padding: 6px 8px;
+  background: var(--dsp-surface-raised);
+  box-shadow: 0 0 16px var(--dsp-shadow);
+  border: 2px solid var(--dsp-border-light);
+  pointer-events: none;
+  animation: dsahud-tooltip-in 0.15s ease;
+}
+
+@keyframes dsahud-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#dsahud-tooltip.visible { display: block; }
+
+#dsahud-tooltip .content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Header */
+#dsahud-tooltip .header .top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+#dsahud-tooltip .header img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--dsp-radius-sm);
+  border: 1px solid var(--dsp-border);
+  flex-shrink: 0;
+  background: light-dark(rgba(0,0,0,.08), rgba(0,0,0,.2));
+}
+
+#dsahud-tooltip .name.name-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+#dsahud-tooltip .name .title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dsp-text);
+  line-height: 1.2;
+}
+
+#dsahud-tooltip .name .subtitle {
+  font-size: 12px;
+  color: var(--dsp-text-light);
+}
+
+/* Header badges (resource cost) */
+#dsahud-tooltip .header-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+#dsahud-tooltip .header-badge .label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--dsp-accent);
+}
+
+#dsahud-tooltip .header-badge .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dsp-text);
+}
+
+/* Metadata row */
+#dsahud-tooltip .header .bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--dsp-border-light);
+}
+
+#dsahud-tooltip .metadata-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+#dsahud-tooltip .metadata-item .label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dsp-text-faint);
+}
+
+#dsahud-tooltip .metadata-item .value {
+  font-size: 12px;
+  color: var(--dsp-text-light);
+}
+
+/* Description */
+#dsahud-tooltip .description {
+  max-height: 350px;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsp-text-light);
+}
+
+#dsahud-tooltip .description p  { margin: 4px 0; }
+#dsahud-tooltip .description strong { color: var(--dsp-text); }
+
+/* Ability details: power rolls + effects */
+#dsahud-tooltip .ability-details {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsp-text-light);
+  max-height: 350px;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+#dsahud-tooltip .ability-details .flavor {
+  margin: 0 0 6px;
+  font-style: italic;
+  color: var(--dsp-text-light);
+}
+
+#dsahud-tooltip .ability-details .power-result {
+  margin: 6px 0;
+  padding: 4px 0;
+  border-top: 1px solid var(--dsp-border-light);
+}
+
+#dsahud-tooltip .ability-details .power-roll-line {
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+
+#dsahud-tooltip .ability-details .power-roll-line strong { color: var(--dsp-text); }
+
+#dsahud-tooltip .ability-details .power-roll-display {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+}
+
+#dsahud-tooltip .ability-details .power-roll-display dt {
+  font-weight: 300;
+  color: var(--dsp-accent);
+}
+
+#dsahud-tooltip .ability-details .power-roll-display dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--dsp-text-light);
+}
+
+#dsahud-tooltip .ability-details .power-roll-display dd p { margin: 0; }
+
+#dsahud-tooltip .ability-details .effect {
+  margin: 6px 0;
+  padding: 4px 0;
+  border-top: 1px solid var(--dsp-border-light);
+}
+
+#dsahud-tooltip .ability-details .effect dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  font-size: 12px;
+}
+
+#dsahud-tooltip .ability-details .effect dt {
+  font-weight: 600;
+  color: var(--dsp-accent);
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+#dsahud-tooltip .ability-details .effect dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--dsp-text-light);
+}
+
+#dsahud-tooltip .ability-details .effect dd p { margin: 0; }
+
+/* Keyword pills */
+#dsahud-tooltip .pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#dsahud-tooltip .pill {
+  background: light-dark(rgba(0,0,0,.06), rgba(255,255,255,.06));
+  border: 1px solid var(--dsp-border);
+  border-radius: var(--dsp-radius-full);
+  padding: 1px 7px;
+}
+
+#dsahud-tooltip .pill .label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dsp-text-faint);
+}
+
+
+/* ---- Generic config table ---- */
+#dsahud-generic-abilities-config table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#dsahud-generic-abilities-config th,
+#dsahud-generic-abilities-config td {
+  padding: 4px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+#dsahud-generic-abilities-config th:first-child,
+#dsahud-generic-abilities-config td:first-child {
+  text-align: left;
+}

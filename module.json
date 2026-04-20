@@ -1,0 +1,46 @@
+{
+  "id": "draw-steel-ability-hud",
+  "title": "Draw Steel - Ability HUD",
+  "description": "A fixed hotbar-style HUD above the Foundry hotbar showing the selected token's abilities, features, and character actions with hover menus.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14.360"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "draw-steel",
+        "type": "system",
+        "compatibility": {
+          "minimum": "0.9.0",
+          "verified": "1.0.0"
+        }
+      }
+    ]
+  },
+  "authors": [
+    {
+      "name": "OmerCora",
+      "url": "https://www.coraomer.com"
+    }
+  ],
+  "manifest": "https://github.com/OmerCora/draw-steel-ability-hud/releases/latest/download/module.json",
+  "esmodules": [
+    "scripts/module.mjs"
+  ],
+  "styles": [
+    "styles/ability-hud.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "license": "MIT",
+  "url": "https://github.com/OmerCora/draw-steel-ability-hud",
+  "bugs": "https://github.com/OmerCora/draw-steel-ability-hud/issues",
+  "flags": {}
+}

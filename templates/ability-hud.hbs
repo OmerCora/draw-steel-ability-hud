@@ -1,0 +1,41 @@
+<div id="ds-ability-hud">
+<div class="dsahud-bar">
+  {{#if hasActor}}
+  {{#each buttons}}
+  <div class="dsahud-button" data-button-id="{{this.id}}">
+    <span class="dsahud-button-icon">{{this.icon}}</span>
+    <span class="dsahud-button-label">{{this.label}}</span>
+
+    {{#if this.sections.length}}
+    <div class="dsahud-popup">
+      {{#each this.sections}}
+      <div class="dsahud-section">
+        <div class="dsahud-section-title">{{this.title}}</div>
+        <div class="dsahud-section-items">
+          {{#each this.items}}
+          <button class="dsahud-action"
+                  data-action-type="{{this.actionType}}"
+                  data-action-id="{{this.actionId}}"
+                  {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}
+                  title="{{this.name}}{{#if this.cost}} ({{this.cost}}){{/if}}">
+            {{#if this.img}}
+            <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
+            {{else}}
+            <span class="dsahud-action-emoji">{{this.emoji}}</span>
+            {{/if}}
+            <span class="dsahud-action-name">{{this.name}}</span>
+            {{#if this.cost}}
+            <span class="dsahud-action-cost">{{this.cost}}</span>
+            {{/if}}
+          </button>
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  {{/each}}
+  {{/if}}
+</div>
+</div>

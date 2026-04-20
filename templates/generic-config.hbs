@@ -1,0 +1,36 @@
+<form>
+  <table>
+    <thead>
+      <tr>
+        <th>Ability</th>
+        <th>Type</th>
+        {{#each users}}
+        <th>{{this.name}}</th>
+        {{/each}}
+        {{#if hasMonsters}}
+        <th>Monsters</th>
+        {{/if}}
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+      <tr>
+        <td>{{this.name}}</td>
+        <td>{{this.type}}</td>
+        {{#each ../users}}
+        <td>
+          <input type="checkbox" name="{{../this.uuid}}.{{this.id}}"
+                 {{#if (lookup ../this.columns this.id)}}checked{{/if}}>
+        </td>
+        {{/each}}
+        {{#if ../hasMonsters}}
+        <td>
+          <input type="checkbox" name="{{this.uuid}}.__monsters__"
+                 {{#if this.columns.__monsters__}}checked{{/if}}>
+        </td>
+        {{/if}}
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</form>
