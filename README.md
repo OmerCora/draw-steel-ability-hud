@@ -4,11 +4,10 @@ A Foundry VTT module for the [Draw Steel](https://mcdmproductions.com) system th
 
 ## Summary
 
-Ability HUD gives players and Directors instant access to a token's full ability set without opening the character sheet. Hovering a button opens a popup with all abilities in that category — click to roll, right-click to post to chat.
-
+Ability HUD gives players and Directors instant access to a selected token's full ability/feature set without opening the character sheet. 
+Left click to roll, right-click to post to chat. Character tab has easy access features like Ability Test, Spend Recovery, Hero Token and Surge.
 
 <img width="810" height="386" alt="Screenshot 2026-04-20 164718" src="https://github.com/user-attachments/assets/ca57ed03-ec3b-4c7f-95f6-4977d851dbcb" />
-
 
 ## Features
 
@@ -21,18 +20,15 @@ Ability HUD gives players and Directors instant access to a token's full ability
 - **📋 Features**: All feature items on the actor
 
 ### NPC / Monster Buttons
-- **⚔️ Main Action**: Signature abilities, Malice abilities, Free Strike
+- **⚔️ Main Action**: Signature abilities, Malice abilities, Free Strike (System's native Monster Free Strike)
 - **🤸 Maneuver**: Maneuver abilities
 - **⚡ Triggered Action**: Triggered abilities
 - **☠️ Monster**: Characteristics, Malice (type:none), Villain Actions
 - **📋 Features**: Feature items
 
 <img width="793" height="497" alt="Screenshot 2026-04-20 164730" src="https://github.com/user-attachments/assets/6ae13f6f-ff78-4af2-8914-e8376b4f435f" />
-
 <img width="283" height="600" alt="Screenshot 2026-04-20 164848" src="https://github.com/user-attachments/assets/07255f21-3d18-48ba-ae37-72c0bcc67fa5" />
 <img width="273" height="458" alt="Screenshot 2026-04-20 164818" src="https://github.com/user-attachments/assets/c3c69f43-7a2a-4388-80e5-94ebdbb27f9c" />
-
-
 
 ### Hover Tooltips
 - Hover any ability or feature row to see a rich tooltip to the right of the popup
