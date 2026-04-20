@@ -2,7 +2,7 @@
   "id": "draw-steel-ability-hud",
   "title": "Draw Steel - Ability HUD",
   "description": "A fixed hotbar-style HUD above the Foundry hotbar showing the selected token's abilities, features, and character actions with hover menus.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14.360"
