@@ -1,6 +1,6 @@
 # Draw Steel - Ability HUD
 
-A Foundry VTT module for the [Draw Steel](https://mcdmproductions.com) system that provides a fixed hotbar-style HUD above the Foundry macro bar showing the selected token's abilities, features, and actions with hover popup menus.
+A Foundry VTT module for the [Draw Steel](https://mcdmproductions.com) system that provides a fixed hotbar-style HUD above the Foundry hotbar showing the selected token's abilities, features, and actions with hover popup menus.
 
 ## Summary
 
@@ -57,7 +57,13 @@ https://github.com/OmerCora/draw-steel-ability-hud/releases/latest/download/modu
 
 ## Optional Integration
 
-- **Draw Steel Plus** — When active, tooltips use DS Plus's rich rendering automatically. No configuration needed.
+- **Draw Steel Plus**: When active, tooltips use DS Plus's rich rendering automatically. No configuration needed.
+
+<img width="685" height="535" alt="Screenshot 2026-04-20 165726" src="https://github.com/user-attachments/assets/0af13626-0122-479a-b006-dba046bb8042" />
+
+## Limitation
+
+- I intentionally made it fixed over the Foundry hotbar for my players. I might consider making it movable if there is enough request.
 
 ## License
 
