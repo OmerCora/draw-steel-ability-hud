@@ -7,7 +7,8 @@ A Foundry VTT module for the [Draw Steel](https://mcdmproductions.com) system th
 Ability HUD gives players and Directors instant access to a selected token's full ability/feature set without opening the character sheet. 
 Left click to roll, right-click to post to chat. Character tab has easy access features like Ability Test, Spend Recovery, Hero Token and Surge.
 
-<img width="810" height="386" alt="Screenshot 2026-04-20 164718" src="https://github.com/user-attachments/assets/ca57ed03-ec3b-4c7f-95f6-4977d851dbcb" />
+<img width="850" height="495" alt="Screenshot 2026-04-20 172959" src="https://github.com/user-attachments/assets/c450e69e-da63-4d63-a36e-8511a24fa675" />
+
 
 ## Features
 
