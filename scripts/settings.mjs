@@ -80,9 +80,11 @@ class GenericAbilitiesConfig extends FormApplication {
       const folders = pack.folders ?? [];
       const basicFolder = folders.find(f => f.name === "Basic Abilities");
       if (basicFolder) {
-        const index = await pack.getIndex({ fields: ["system.type", "folder", "name"] });
+        const index = await pack.getIndex({ fields: ["system.type", "system.category", "folder", "name"] });
         for (const entry of index) {
           if (entry.folder !== basicFolder.id) continue;
+          if (entry.system?.type === "move") continue;
+          if (entry.system?.category === "freeStrike") continue;
           abilities.push({
             uuid: `Compendium.draw-steel.abilities.Item.${entry._id}`,
             name: entry.name,
@@ -92,15 +94,21 @@ class GenericAbilitiesConfig extends FormApplication {
       }
     }
 
-    // Build checkbox rows
+    // Sort abilities alphabetically
+    abilities.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Build checkbox rows — use item ID (no dots) as form field key
+    this._uuidByItemId = {};
     const rows = abilities.map(a => {
+      const itemId = a.uuid.split(".").pop();
+      this._uuidByItemId[itemId] = a.uuid;
       const abilityConfig = config[a.uuid] ?? {};
       const columns = {};
       for (const u of users) {
         columns[u.id] = abilityConfig[u.id] !== false; // default true
       }
       columns["__monsters__"] = abilityConfig["__monsters__"] !== false;
-      return { uuid: a.uuid, name: a.name, type: a.type, columns };
+      return { uuid: a.uuid, itemId: a.uuid.split(".").pop(), name: a.name, type: a.type, columns };
     });
 
     return { rows, users, hasMonsters: true };
@@ -109,12 +117,13 @@ class GenericAbilitiesConfig extends FormApplication {
   async _updateObject(_event, formData) {
     const config = {};
     const expanded = foundry.utils.expandObject(formData);
-    // formData has keys like "uuid.userId" = true/false
-    for (const [key, val] of Object.entries(expanded)) {
-      // key is UUID (dots replaced), val is { userId: on/off }
-      config[key] = {};
-      for (const [col, checked] of Object.entries(val)) {
-        config[key][col] = !!checked;
+    const allColumns = [...game.users.filter(u => !u.isGM).map(u => u.id), "__monsters__"];
+    // Iterate every known ability; set each column explicitly — unchecked boxes are absent from formData so default to false
+    for (const [itemId, uuid] of Object.entries(this._uuidByItemId ?? {})) {
+      const val = expanded[itemId] ?? {};
+      config[uuid] = {};
+      for (const col of allColumns) {
+        config[uuid][col] = !!(val[col]);
       }
     }
     await game.settings.set(MODULE_ID, "genericAbilitiesConfig", config);

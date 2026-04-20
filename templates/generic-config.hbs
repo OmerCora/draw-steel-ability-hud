@@ -19,13 +19,13 @@
         <td>{{this.type}}</td>
         {{#each ../users}}
         <td>
-          <input type="checkbox" name="{{../this.uuid}}.{{this.id}}"
+        <input type="checkbox" name="{{../this.itemId}}.{{this.id}}"
                  {{#if (lookup ../this.columns this.id)}}checked{{/if}}>
         </td>
         {{/each}}
         {{#if ../hasMonsters}}
         <td>
-          <input type="checkbox" name="{{this.uuid}}.__monsters__"
+          <input type="checkbox" name="{{this.itemId}}.__monsters__"
                  {{#if this.columns.__monsters__}}checked{{/if}}>
         </td>
         {{/if}}
@@ -33,4 +33,7 @@
       {{/each}}
     </tbody>
   </table>
+  <div class="form-footer flexrow">
+    <button type="submit"><i class="fas fa-save"></i> Save</button>
+  </div>
 </form>

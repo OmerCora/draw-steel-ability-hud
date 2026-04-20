@@ -73,9 +73,11 @@ function staticEntry(id, name, emoji, actionType, cost = "") {
 
 /** Get the set of _dsid values from the Basic Abilities compendium folder. */
 let _basicAbilityDsids = null;
+let _basicAbilityDsidToUuid = null;
 async function getBasicAbilityDsids() {
   if (_basicAbilityDsids) return _basicAbilityDsids;
   _basicAbilityDsids = new Set();
+  _basicAbilityDsidToUuid = new Map();
   const pack = game.packs.get("draw-steel.abilities");
   if (!pack) return _basicAbilityDsids;
   const folders = pack.folders ?? [];
@@ -84,7 +86,10 @@ async function getBasicAbilityDsids() {
   const index = await pack.getIndex({ fields: ["system._dsid", "folder"] });
   for (const entry of index) {
     if (entry.folder !== basicFolder.id) continue;
-    if (entry.system?._dsid) _basicAbilityDsids.add(entry.system._dsid);
+    if (entry.system?._dsid) {
+      _basicAbilityDsids.add(entry.system._dsid);
+      _basicAbilityDsidToUuid.set(entry.system._dsid, `Compendium.draw-steel.abilities.Item.${entry._id}`);
+    }
   }
   return _basicAbilityDsids;
 }
@@ -92,10 +97,15 @@ async function getBasicAbilityDsids() {
 /** Get the configured basic ability UUIDs for this actor, filtered by GM settings. */
 async function getGenericAbilities(actor, abilityType) {
   const config = game.settings.get(MODULE_ID, "genericAbilitiesConfig") ?? {};
-  const userId = game.user.id;
 
-  // Determine which column to check: user ID or "monsters" for non-hero
-  const column = actor.type === "hero" ? userId : "__monsters__";
+  // Determine which column to check: use the actor's non-GM owner, not the current viewer
+  let column;
+  if (actor.type === "hero") {
+    const owner = game.users.find(u => !u.isGM && actor.testUserPermission(u, "OWNER"));
+    column = owner?.id ?? game.user.id;
+  } else {
+    column = "__monsters__";
+  }
 
   const pack = game.packs.get("draw-steel.abilities");
   if (!pack) return [];
@@ -207,6 +217,7 @@ export async function buildMainActionData(actor) {
   }
 
   if (signature.length) sections.push({ title: loc("DSAHUD.Sections.Signature"), items: signature });
+  heroic.sort((a, b) => ((Number(a.cost) || 0) - (Number(b.cost) || 0)) || a.name.localeCompare(b.name));
   if (heroic.length) sections.push({ title: loc(isNpc ? "DSAHUD.Sections.Malice" : "DSAHUD.Sections.Heroic"), items: heroic });
 
   // Free Strikes (ability items with freeStrike category)
@@ -229,6 +240,15 @@ export async function buildMainActionData(actor) {
   }
 
   // Basic Abilities — actor-synced copies first, then any extra compendium picks not already on the actor
+  const config = game.settings.get(MODULE_ID, "genericAbilitiesConfig") ?? {};
+  let basicColumn;
+  if (actor.type === "hero") {
+    const owner = game.users.find(u => !u.isGM && actor.testUserPermission(u, "OWNER"));
+    basicColumn = owner?.id ?? game.user.id;
+  } else {
+    basicColumn = "__monsters__";
+  }
+
   const basicActorItems = [];
   const basicActorDsids = new Set();
   for (const item of items) {
@@ -236,6 +256,12 @@ export async function buildMainActionData(actor) {
     if (item.system.type !== "main") continue;
     if (item.system.category === "freeStrike") continue;
     if (!item.system._dsid || !basicDsids.has(item.system._dsid)) continue;
+    // Apply config filter using dsid → compendium UUID lookup
+    const compendiumUuid = _basicAbilityDsidToUuid?.get(item.system._dsid);
+    if (compendiumUuid) {
+      const abilityConfig = config[compendiumUuid];
+      if (abilityConfig && abilityConfig[basicColumn] === false) continue;
+    }
     basicActorDsids.add(item.system._dsid);
     basicActorItems.push(abilityEntry(item));
   }
@@ -442,6 +468,7 @@ export async function buildMaliceData(actor) {
     if (item.system.type !== "none") continue;
     malice.push(abilityEntry(item));
   }
+  malice.sort((a, b) => ((Number(a.cost) || 0) - (Number(b.cost) || 0)) || a.name.localeCompare(b.name));
   if (malice.length) sections.push({ title: loc("DSAHUD.Sections.Malice"), items: malice });
 
   return sections;
@@ -489,6 +516,7 @@ export async function buildMonsterData(actor) {
     if (item.system.type !== "none") continue;
     malice.push(abilityEntry(item));
   }
+  malice.sort((a, b) => ((Number(a.cost) || 0) - (Number(b.cost) || 0)) || a.name.localeCompare(b.name));
   if (malice.length) sections.push({ title: loc("DSAHUD.Sections.Malice"), items: malice });
 
   // Villain Actions
