@@ -101,7 +101,7 @@ async function getGenericAbilities(actor, abilityType) {
   if (!pack) return [];
 
   // Get all items in the "Basic Abilities" folder
-  const index = await pack.getIndex({ fields: ["system.type", "folder", "name", "img", "system.resource", "system.category"] });
+  const index = await pack.getIndex({ fields: ["system.type", "system._dsid", "folder", "name", "img", "system.resource", "system.category"] });
 
   // Find the "Basic Abilities" folder in the pack
   const folders = pack.folders ?? [];
@@ -113,6 +113,8 @@ async function getGenericAbilities(actor, abilityType) {
     if (entry.folder !== basicFolder.id) continue;
     // Check ability type
     if (abilityType && entry.system?.type !== abilityType) continue;
+    // Exclude freeStrike category — shown in its own section from actor items
+    if (entry.system?.category === "freeStrike") continue;
 
     const uuid = `Compendium.draw-steel.abilities.Item.${entry._id}`;
 
@@ -122,6 +124,7 @@ async function getGenericAbilities(actor, abilityType) {
 
     results.push({
       id: `generic-${entry._id}`,
+      _dsid: entry.system?._dsid ?? null,
       uuid,
       name: entry.name,
       img: entry.img,
@@ -169,11 +172,14 @@ export async function buildMainActionData(actor) {
   const items = actor.items;
   const isNpc = actor.type === "npc";
 
+  const basicDsids = await getBasicAbilityDsids();
+
   // Signature abilities
   const signature = [];
   for (const item of items) {
     if (item.type !== "ability") continue;
     if (item.system.type !== "main") continue;
+    if (item.system._dsid && basicDsids.has(item.system._dsid)) continue;
     if (item.system.category === "signature") signature.push(abilityEntry(item));
   }
 
@@ -182,6 +188,7 @@ export async function buildMainActionData(actor) {
   for (const item of items) {
     if (item.type !== "ability") continue;
     if (item.system.type !== "main") continue;
+    if (item.system._dsid && basicDsids.has(item.system._dsid)) continue;
     if (item.system.category === "heroic" || item.system.category === "epic") heroic.push(abilityEntry(item));
   }
 
@@ -190,6 +197,7 @@ export async function buildMainActionData(actor) {
   for (const item of items) {
     if (item.type !== "ability") continue;
     if (item.system.type !== "main") continue;
+    if (item.system._dsid && basicDsids.has(item.system._dsid)) continue;
     if (knownCategories.has(item.system.category)) continue;
     if (item.system.resource) {
       heroic.push(abilityEntry(item));
@@ -220,8 +228,21 @@ export async function buildMainActionData(actor) {
     });
   }
 
-  // Basic Abilities (from compendium, main action type)
-  const basic = await getGenericAbilities(actor, "main");
+  // Basic Abilities — actor-synced copies first, then any extra compendium picks not already on the actor
+  const basicActorItems = [];
+  const basicActorDsids = new Set();
+  for (const item of items) {
+    if (item.type !== "ability") continue;
+    if (item.system.type !== "main") continue;
+    if (item.system.category === "freeStrike") continue;
+    if (!item.system._dsid || !basicDsids.has(item.system._dsid)) continue;
+    basicActorDsids.add(item.system._dsid);
+    basicActorItems.push(abilityEntry(item));
+  }
+  const basicCompendium = await getGenericAbilities(actor, "main");
+  // De-duplicate: skip compendium entries whose dsid the actor already has synced
+  const basicExtra = basicCompendium.filter(e => !basicActorDsids.has(e._dsid));
+  const basic = [...basicActorItems, ...basicExtra];
   if (basic.length) sections.push({ title: loc("DSAHUD.Sections.BasicAbilities"), items: basic });
 
   return sections;
