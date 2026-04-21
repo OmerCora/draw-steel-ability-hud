@@ -3,7 +3,7 @@
   {{#if hasActor}}
   {{#each buttons}}
   <div class="dsahud-button" data-button-id="{{this.id}}">
-    <span class="dsahud-button-icon">{{this.icon}}</span>
+    <i class="dsahud-button-icon {{this.icon}}"></i>
     <span class="dsahud-button-label">{{this.label}}</span>
 
     {{#if this.sections.length}}
@@ -21,7 +21,7 @@
             {{#if this.img}}
             <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
             {{else}}
-            <span class="dsahud-action-emoji">{{this.emoji}}</span>
+            <i class="dsahud-action-icon {{this.emoji}}"></i>
             {{/if}}
             <span class="dsahud-action-name">{{this.name}}</span>
             {{#if this.cost}}

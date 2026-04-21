@@ -132,9 +132,9 @@
   object-fit: cover;
 }
 
-.dsahud-action-emoji {
+.dsahud-action-icon {
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: 11px;
   width: 20px;
   text-align: center;
 }

@@ -16,11 +16,11 @@ function abilityEntry(item) {
   const res = item.system.resource;
   const cost = (res && res !== 0) ? `${res}` : "";
   const cat = item.system.category ?? "";
-  let emoji = "🔹";
-  if (cat === "signature") emoji = "✦";
-  else if (cat === "heroic") emoji = "🌟";
-  else if (cat === "epic") emoji = "💎";
-  else if (cat === "freeStrike") emoji = "🗡️";
+  let emoji = "fa-solid fa-diamond";
+  if (cat === "signature") emoji = "fa-solid fa-star-of-life";
+  else if (cat === "heroic") emoji = "fa-solid fa-star";
+  else if (cat === "epic") emoji = "fa-solid fa-gem";
+  else if (cat === "freeStrike") emoji = "fa-solid fa-sword";
   return {
     id: item.id,
     uuid: item.uuid,
@@ -34,7 +34,7 @@ function abilityEntry(item) {
 }
 
 /** Build a single action entry for a feature/treasure item (print to chat). */
-function featureEntry(item, emoji = "📄") {
+function featureEntry(item, emoji = "fa-solid fa-scroll") {
   return {
     id: item.id,
     uuid: item.uuid,
@@ -49,14 +49,14 @@ function featureEntry(item, emoji = "📄") {
 
 /** Characteristic button entry. */
 function charEntry(name, value) {
-  const icons = { might: "🅼", agility: "🅰", reason: "🆁", intuition: "🅸", presence: "🅿" };
+  const icons = { might: "fa-solid fa-fist-raised", agility: "fa-solid fa-feather", reason: "fa-solid fa-brain", intuition: "fa-solid fa-eye", presence: "fa-solid fa-user-crown" };
   const displayName = name.charAt(0).toUpperCase() + name.slice(1);
   return {
     id: `char-${name}`,
     name: displayName,
     img: null,
     cost: modifier(value),
-    emoji: icons[name] ?? "🔹",
+    emoji: icons[name] ?? "fa-solid fa-dice",
     actionType: "characteristic",
     actionId: name,
   };
@@ -139,7 +139,7 @@ async function getGenericAbilities(actor, abilityType) {
       name: entry.name,
       img: entry.img,
       cost: (entry.system?.resource && entry.system.resource !== 0) ? `${entry.system.resource}` : "",
-      emoji: "⚙️",
+      emoji: "fa-solid fa-gears",
       actionType: "compendiumAbility",
       actionId: uuid,
     });
@@ -164,7 +164,7 @@ async function getHomebrewManeuvers() {
         name: item.name,
         img: item.img,
         cost: (item.system?.resource && item.system.resource !== 0) ? `${item.system.resource}` : "",
-        emoji: "🔧",
+        emoji: "fa-solid fa-wrench",
         actionType: "compendiumAbility",
         actionId: uuid,
       });
@@ -235,8 +235,7 @@ export async function buildMainActionData(actor) {
     const dmg = fs?.value ?? actor.system.monster?.freeStrike ?? "?";
     sections.push({
       title: loc("DSAHUD.Sections.FreeStrike"),
-      items: [staticEntry("npc-free-strike", loc("DSAHUD.Sections.FreeStrike"), "🗡️", "npcFreeStrike", `${dmg}`)],
-    });
+      items: [staticEntry("npc-free-strike", loc("DSAHUD.Sections.FreeStrike"), "fa-solid fa-sword", "npcFreeStrike", `${dmg}`)],    });
   }
 
   // Basic Abilities — actor-synced copies first, then any extra compendium picks not already on the actor
@@ -362,8 +361,7 @@ export async function buildCharacterData(actor) {
     const rec = actor.system.recoveries;
     sections.push({
       title: loc("DSAHUD.Sections.Recovery"),
-      items: [staticEntry("recovery", loc("DSAHUD.Actions.SpendRecovery"), "💚", "recovery", `${rec?.value ?? 0}/${rec?.max ?? 0}`)],
-    });
+      items: [staticEntry("recovery", loc("DSAHUD.Actions.SpendRecovery"), "fa-solid fa-heart-pulse", "recovery", `${rec?.value ?? 0}/${rec?.max ?? 0}`)],    });
 
     // Hero Tokens
     const heroTokens = game.actors?.heroTokens?.value ?? 0;
@@ -371,8 +369,8 @@ export async function buildCharacterData(actor) {
     sections.push({
       title: loc("DSAHUD.Sections.HeroTokens"),
       items: [
-        staticEntry("heroTokenRecovery", loc("DSAHUD.Actions.HeroTokenRecovery"), "💛", "heroTokenRecovery", `${heroTokens} tokens`),
-        staticEntry("gainSurges", loc("DSAHUD.Actions.GainSurges"), "⚡", "gainSurges", `${surges} surges`),
+        staticEntry("heroTokenRecovery", loc("DSAHUD.Actions.HeroTokenRecovery"), "fa-solid fa-coin", "heroTokenRecovery", `${heroTokens} tokens`),
+        staticEntry("gainSurges", loc("DSAHUD.Actions.GainSurges"), "fa-solid fa-bolt", "gainSurges", `1 token`),
       ],
     });
 
@@ -380,10 +378,10 @@ export async function buildCharacterData(actor) {
     sections.push({
       title: loc("DSAHUD.Sections.SpendSurge"),
       items: [
-        staticEntry("damageSurge1", loc("DSAHUD.Actions.DamageSurge1"), "💥", "damageSurge", `1 surge`),
-        staticEntry("damageSurge2", loc("DSAHUD.Actions.DamageSurge2"), "💥", "damageSurge2", `2 surges`),
-        staticEntry("damageSurge3", loc("DSAHUD.Actions.DamageSurge3"), "💥", "damageSurge3", `3 surges`),
-        staticEntry("potencySurge", loc("DSAHUD.Actions.PotencySurge"), "✨", "potencySurge", `2 surges`),
+        staticEntry("damageSurge1", loc("DSAHUD.Actions.DamageSurge1"), "fa-solid fa-burst", "damageSurge", `1 surge`),
+        staticEntry("damageSurge2", loc("DSAHUD.Actions.DamageSurge2"), "fa-solid fa-burst", "damageSurge2", `2 surges`),
+        staticEntry("damageSurge3", loc("DSAHUD.Actions.DamageSurge3"), "fa-solid fa-burst", "damageSurge3", `3 surges`),
+        staticEntry("potencySurge", loc("DSAHUD.Actions.PotencySurge"), "fa-solid fa-arrow-up", "potencySurge", `2 surges`),
       ],
     });
   }
@@ -407,10 +405,10 @@ export async function buildItemsData(actor) {
   for (const item of items) {
     if (item.type !== "treasure") continue;
     const category = item.system.category ?? "";
-    if (category === "consumable") consumable.push(featureEntry(item, "🧪"));
-    else if (category === "trinket") trinket.push(featureEntry(item, "💍"));
-    else if (category === "artifact") artifact.push(featureEntry(item, "💎"));
-    else leveled.push(featureEntry(item, "⚔️"));
+    if (category === "consumable") consumable.push(featureEntry(item, "fa-solid fa-flask"));
+    else if (category === "trinket") trinket.push(featureEntry(item, "fa-solid fa-ring"));
+    else if (category === "artifact") artifact.push(featureEntry(item, "fa-solid fa-gem"));
+    else leveled.push(featureEntry(item, "fa-solid fa-sword"));
   }
 
   if (consumable.length) sections.push({ title: loc("DSAHUD.Sections.Consumable"), items: consumable });
@@ -437,11 +435,11 @@ export async function buildFeaturesData(actor) {
 
   for (const item of items) {
     switch (item.type) {
-      case "feature": features.push(featureEntry(item, "📋")); break;
-      case "ancestryTrait": ancestryTraits.push(featureEntry(item, "🧬")); break;
-      case "perk": perks.push(featureEntry(item, "⭐")); break;
-      case "title": titles.push(featureEntry(item, "👑")); break;
-      case "complication": complications.push(featureEntry(item, "⚠️")); break;
+      case "feature": features.push(featureEntry(item, "fa-solid fa-list")); break;
+      case "ancestryTrait": ancestryTraits.push(featureEntry(item, "fa-solid fa-dna")); break;
+      case "perk": perks.push(featureEntry(item, "fa-solid fa-plus")); break;
+      case "title": titles.push(featureEntry(item, "fa-solid fa-crown")); break;
+      case "complication": complications.push(featureEntry(item, "fa-solid fa-triangle-exclamation")); break;
     }
   }
 
