@@ -1,6 +1,8 @@
 # Draw Steel - Ability HUD
 
 [![Downloads](https://img.shields.io/github/downloads/OmerCora/draw-steel-ability-hud/total?label=Downloads&color=4aa94a)](https://github.com/OmerCora/draw-steel-ability-hud/releases)
+[![Latest Version Downloads](https://img.shields.io/github/downloads/OmerCora/draw-steel-ability-hud/latest/total?label=Latest%20Version&color=4aa94a)](https://github.com/OmerCora/draw-steel-ability-hud/releases/latest)
+[![Foundry Installs](https://img.shields.io/endpoint?url=https://foundryshields.com/installs?packageName=draw-steel-ability-hud)](https://foundryvtt.com/packages/draw-steel-ability-hud)
 [![Foundry Version](https://img.shields.io/badge/Foundry-v13%2B-informational)](https://foundryvtt.com/packages/draw-steel-ability-hud)
 
 A Foundry VTT module for the [Draw Steel](https://mcdmproductions.com) system that provides a fixed hotbar-style HUD above the Foundry hotbar showing the selected token's abilities, features, and actions with hover popup menus.
