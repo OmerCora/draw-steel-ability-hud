@@ -10,7 +10,8 @@ export class AbilityHud extends Application {
   /** @type {ReturnType<typeof setTimeout>|null} */
   #closeTimer = null;
   #resizeHandler = null;
-  #sidebarHookIds = [];
+  #mutationObserver = null;
+  #resizeObserver = null;
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -422,13 +423,54 @@ export class AbilityHud extends Application {
       window.addEventListener("resize", this.#resizeHandler);
     }
 
-    // Re-align when the sidebar collapses/expands — hotbar shifts after the CSS transition (~300ms)
-    if (!this.#sidebarHookIds.length) {
-      const realign = () => setTimeout(() => this.#alignToHotbar(), 320);
-      this.#sidebarHookIds.push(
-        { event: "collapseSidebar", id: Hooks.on("collapseSidebar", realign) },
-        { event: "renderSidebar",   id: Hooks.on("renderSidebar",   realign) },
-      );
+    // Re-align when the hotbar or its container changes.
+    // Dice/chat trays trigger a CSS transition on #hotbar — the mutation fires at the START
+    // of the transition, so we must wait for transitionend before reading getBoundingClientRect.
+    const scheduleAlign = () => {
+      const hb = document.getElementById("hotbar");
+      if (!hb) { requestAnimationFrame(() => this.#alignToHotbar()); return; }
+
+      // If the hotbar has a CSS transition defined, wait for it to finish.
+      const durationStr = getComputedStyle(hb).transitionDuration ?? "0s";
+      const maxDuration = Math.max(...durationStr.split(",").map(s => parseFloat(s) || 0));
+      if (maxDuration > 0.01) {
+        let fallback;
+        const onEnd = () => {
+          clearTimeout(fallback);
+          requestAnimationFrame(() => this.#alignToHotbar());
+        };
+        hb.addEventListener("transitionend", onEnd, { once: true });
+        // Safety fallback in case transitionend never fires
+        fallback = setTimeout(() => {
+          hb.removeEventListener("transitionend", onEnd);
+          this.#alignToHotbar();
+        }, Math.round(maxDuration * 1000) + 100);
+      } else {
+        requestAnimationFrame(() => this.#alignToHotbar());
+      }
+    };
+
+    if (!this.#mutationObserver) {
+      const hotbar   = document.getElementById("hotbar");
+      const uiBottom = hotbar?.parentElement ?? document.getElementById("ui-bottom");
+      this.#mutationObserver = new MutationObserver(scheduleAlign);
+      if (hotbar) {
+        // Watch only the hotbar's own style/class — not subtree (avoids feedback from children)
+        this.#mutationObserver.observe(hotbar, { attributes: true, attributeFilter: ["style", "class"] });
+      }
+      if (uiBottom) {
+        // Watch for tray panels being added/removed from the container
+        this.#mutationObserver.observe(uiBottom, { childList: true });
+      }
+    }
+
+    // ResizeObserver catches width changes not covered by style mutation (e.g. layout reflow)
+    if (!this.#resizeObserver) {
+      const hotbar = document.getElementById("hotbar");
+      if (hotbar) {
+        this.#resizeObserver = new ResizeObserver(scheduleAlign);
+        this.#resizeObserver.observe(hotbar);
+      }
     }
   }
 
@@ -493,8 +535,14 @@ export class AbilityHud extends Application {
       window.removeEventListener("resize", this.#resizeHandler);
       this.#resizeHandler = null;
     }
-    for (const { event, id } of this.#sidebarHookIds) Hooks.off(event, id);
-    this.#sidebarHookIds = [];
+    if (this.#mutationObserver) {
+      this.#mutationObserver.disconnect();
+      this.#mutationObserver = null;
+    }
+    if (this.#resizeObserver) {
+      this.#resizeObserver.disconnect();
+      this.#resizeObserver = null;
+    }
     return super.close(options);
   }
 }
