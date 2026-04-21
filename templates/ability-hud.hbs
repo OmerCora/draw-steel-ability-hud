@@ -7,31 +7,121 @@
     <span class="dsahud-button-label">{{this.label}}</span>
 
     {{#if this.sections.length}}
-    <div class="dsahud-popup">
-      {{#each this.sections}}
-      <div class="dsahud-section">
-        <div class="dsahud-section-title">{{this.title}}</div>
-        <div class="dsahud-section-items">
-          {{#each this.items}}
-          <button class="dsahud-action"
-                  data-action-type="{{this.actionType}}"
-                  data-action-id="{{this.actionId}}"
-                  {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}
-                  title="{{this.name}}{{#if this.cost}} ({{this.cost}}){{/if}}">
-            {{#if this.img}}
-            <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
+    <div class="dsahud-popup{{#if this.charPanel}} dsahud-popup--char{{else}}{{#if this.conditions}} dsahud-popup--char{{/if}}{{/if}}">
+      {{#if this.charPanel}}
+      <div class="dsahud-char-panel">
+        <div class="dsahud-char-name">{{this.charPanel.name}}</div>
+
+        <div class="dsahud-stamina-wrap">
+          <div class="dsahud-stamina-track">
+            <div class="dsahud-stamina-fill" style="left:{{this.charPanel.stamina.fillLeft}}%;width:{{this.charPanel.stamina.fillWidth}}%;background:{{this.charPanel.stamina.fillColor}};"></div>
+            {{#if this.charPanel.stamina.tempWidth}}
+            <div class="dsahud-stamina-temp" style="left:{{this.charPanel.stamina.tempLeft}}%;width:{{this.charPanel.stamina.tempWidth}}%;"></div>
+            {{/if}}
+            {{#if this.charPanel.stamina.zeroPercent}}
+            <div class="dsahud-stamina-zero" style="left:{{this.charPanel.stamina.zeroPercent}}%;"></div>
+            {{/if}}
+            <span class="dsahud-stamina-label">{{this.charPanel.stamina.label}}</span>
+          </div>
+        </div>
+
+        {{#if this.charPanel.recoveries}}
+        <div class="dsahud-cp-section">
+          <div class="dsahud-cp-title">Resources</div>
+          <div class="dsahud-cp-row">
+            <span class="dsahud-cp-lbl"><i class="fa-solid fa-heart-pulse dsahud-cp-icon"></i> Recoveries</span>
+            <span class="dsahud-cp-val">{{this.charPanel.recoveries.value}}/{{this.charPanel.recoveries.max}} (+{{this.charPanel.recoveries.recoveryValue}})</span>
+          </div>
+          <div class="dsahud-cp-row">
+            <span class="dsahud-cp-lbl"><i class="fa-solid fa-bolt dsahud-cp-icon"></i> Surges</span>
+            <span class="dsahud-cp-val">{{this.charPanel.surges}}</span>
+          </div>
+          <div class="dsahud-cp-row">
+            <span class="dsahud-cp-lbl"><i class="fa-solid fa-fire dsahud-cp-icon"></i> {{this.charPanel.heroicResource.name}}</span>
+            <span class="dsahud-cp-val">{{this.charPanel.heroicResource.value}}</span>
+          </div>
+        </div>
+        {{/if}}
+
+        <div class="dsahud-cp-section">
+          <div class="dsahud-cp-title">Size &amp; Movement</div>
+          <div class="dsahud-stats-grid">
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Size</span>
+              <span class="dsahud-stat-val">{{this.charPanel.size}}</span>
+            </div>
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Stability</span>
+              <span class="dsahud-stat-val">{{this.charPanel.stability}}</span>
+            </div>
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Speed</span>
+              <span class="dsahud-stat-val">{{this.charPanel.movement.speed}} <span class="dsahud-stat-sub">({{this.charPanel.movement.display}})</span></span>
+            </div>
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Disengage</span>
+              <span class="dsahud-stat-val">{{this.charPanel.movement.disengage}}</span>
+            </div>
+          </div>
+        </div>
+
+        {{#if this.charPanel.skills.length}}
+        <div class="dsahud-cp-section">
+          <div class="dsahud-cp-title">Skills</div>
+          <div class="dsahud-skills-list">
+            {{#each this.charPanel.skills}}
+            <span class="dsahud-skill-pill">{{this}}</span>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+      </div>
+      {{/if}}
+      <div class="dsahud-tools-col">
+        {{#each this.sections}}
+        <div class="dsahud-section">
+          <div class="dsahud-section-title">{{this.title}}</div>
+          <div class="dsahud-section-items">
+            {{#each this.items}}
+            <button class="dsahud-action"
+                    data-action-type="{{this.actionType}}"
+                    data-action-id="{{this.actionId}}"
+                    {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}>
+              {{#if this.img}}
+              <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
+              {{else}}
+              <i class="dsahud-action-icon {{this.emoji}}"></i>
+              {{/if}}
+              <span class="dsahud-action-name">{{this.name}}</span>
+              {{#if this.cost}}
+              <span class="dsahud-action-cost">{{this.cost}}</span>
+              {{/if}}
+            </button>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{#if this.conditions}}
+      <div class="dsahud-conditions-col">
+        <div class="dsahud-cp-title" style="padding: 8px 8px 4px;">Conditions</div>
+        <div class="dsahud-conditions-list">
+          {{#each this.conditions}}
+          <button class="dsahud-condition-btn{{#if this.active}} active{{/if}}"
+                  data-action-type="toggleCondition"
+                  data-action-id="{{this.id}}"
+                  title="{{this.name}}">
+            {{#if this.icon}}
+            <img class="dsahud-condition-icon" src="{{this.icon}}" alt="">
             {{else}}
-            <i class="dsahud-action-icon {{this.emoji}}"></i>
+            <i class="fa-solid fa-circle-dot dsahud-condition-icon-fa"></i>
             {{/if}}
-            <span class="dsahud-action-name">{{this.name}}</span>
-            {{#if this.cost}}
-            <span class="dsahud-action-cost">{{this.cost}}</span>
-            {{/if}}
+            <span class="dsahud-condition-name">{{this.name}}</span>
           </button>
           {{/each}}
         </div>
       </div>
-      {{/each}}
+      {{/if}}
     </div>
     {{/if}}
   </div>

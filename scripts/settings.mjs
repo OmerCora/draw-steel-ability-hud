@@ -17,6 +17,32 @@ export function registerSettings() {
   });
 
   /**
+   * Show Character Panel — toggles the left-column character overview in the Character popup.
+   */
+  game.settings.register(MODULE_ID, "showCharPanel", {
+    name: game.i18n.localize("DSAHUD.Settings.ShowCharPanel.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.ShowCharPanel.Hint"),
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => {},
+  });
+
+  /**
+   * Show Conditions Panel — toggleable status conditions column in the Character popup.
+   */
+  game.settings.register(MODULE_ID, "showConditionsPanel", {
+    name: game.i18n.localize("DSAHUD.Settings.ShowConditionsPanel.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.ShowConditionsPanel.Hint"),
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => {},
+  });
+
+  /**
    * Generic Abilities Configuration — a JSON object mapping UUID → { userId: boolean, __monsters__: boolean }.
    * Default: empty = all enabled.
    */

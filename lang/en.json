@@ -53,5 +53,9 @@
   "DSAHUD.Settings.HomebrewManeuvers.Name": "Homebrew Maneuvers",
   "DSAHUD.Settings.HomebrewManeuvers.Hint": "Add homebrew maneuver UUIDs to show in the Maneuver menu.",
   "DSAHUD.Settings.EnableTooltips.Name": "Show Ability Tooltips",
-  "DSAHUD.Settings.EnableTooltips.Hint": "Show a rich tooltip when hovering abilities and features in the HUD. If Draw Steel Plus is active it will render its own tooltip; otherwise a matching fallback tooltip is shown."
+  "DSAHUD.Settings.EnableTooltips.Hint": "Show a rich tooltip when hovering abilities and features in the HUD. If Draw Steel Plus is active it will render its own tooltip; otherwise a matching fallback tooltip is shown.",
+  "DSAHUD.Settings.ShowCharPanel.Name": "Show Character Overview Panel",
+  "DSAHUD.Settings.ShowCharPanel.Hint": "Show the character overview column (stamina bar, size, movement, skills) alongside the ability list. For heroes this appears in the Character popup; for monsters it appears in the Monster popup.",
+  "DSAHUD.Settings.ShowConditionsPanel.Name": "Show Conditions Panel",
+  "DSAHUD.Settings.ShowConditionsPanel.Hint": "Show a status conditions column in the Character popup for toggling conditions directly from the HUD."
 }

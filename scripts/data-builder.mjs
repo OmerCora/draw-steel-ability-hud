@@ -386,7 +386,136 @@ export async function buildCharacterData(actor) {
     });
   }
 
-  return sections;
+  // ---- Character panel (left column, heroes only) ----
+  let charPanel = null;
+
+  if (actor.type === "hero" && game.settings.get(MODULE_ID, "showCharPanel")) {
+    const staminaMax = actor.system.stamina.max ?? 0;
+    const staminaVal = actor.system.stamina.value ?? 0;
+    const staminaTemp = actor.system.stamina.temporary ?? 0;
+
+    // Bar range: -50% max to +100% max, normalized to 0–100% width.
+    // fillPos = where current stamina sits in that range (0% = minStamina, 100% = max).
+    // Bar always fills from the left edge to fillPos.
+    // zeroPercent = where value=0 sits (the white marker line), always ~33%.
+    const minStamina = staminaMax > 0 ? Math.floor(-staminaMax * 0.5) : -10;
+    const totalRange = staminaMax - minStamina; // ~1.5 × staminaMax
+    const zeroPercent = totalRange > 0 ? ((0 - minStamina) / totalRange * 100) : 33.33;
+
+    const clampedVal = Math.max(minStamina, Math.min(staminaMax, staminaVal));
+    const fillPos = totalRange > 0 ? ((clampedVal - minStamina) / totalRange * 100) : 0;
+
+    // Color based on ratio of current stamina to max (0 = red, 1 = green)
+    const ratio = staminaMax > 0 ? Math.max(0, Math.min(1, clampedVal / staminaMax)) : 0;
+    const hue = Math.round(ratio * 120);
+    const fillColor = `hsl(${hue}, 75%, 42%)`;
+
+    // Fill always left→right from position 0
+    const mainFillLeft = 0;
+    const mainFillWidth = Math.max(0, fillPos);
+
+    // Temp stamina bar — extends rightward from where the positive fill ends
+    let tempLeft = null, tempWidth = null;
+    if (staminaTemp > 0 && totalRange > 0) {
+      const fillEndPos = ((Math.min(staminaVal, staminaMax) - minStamina) / totalRange * 100);
+      tempLeft = fillEndPos.toFixed(2);
+      tempWidth = (staminaTemp / totalRange * 100).toFixed(2);
+    }
+
+    const staminaLabel = `${staminaVal} / ${staminaMax}${staminaTemp > 0 ? ` (${staminaTemp})` : ""}`;
+
+    // Recoveries
+    const rec = actor.system.recoveries;
+    const recoveryValue = rec?.recoveryValue ?? Math.floor((staminaMax) / 3);
+
+    // Heroic resource — name from class item
+    const classItem = actor.items.find(i => i.type === "class");
+    const heroicResourceName = classItem?.system?.primary ?? "Heroic Resource";
+    const heroicResourceValue = actor.system.hero?.primary?.value ?? 0;
+
+    // Surges
+    const surgesCount = actor.system.hero?.surges ?? 0;
+
+    // Size
+    const combatSize = actor.system.combat?.size ?? {};
+    const sizeVal = combatSize.value ?? 1;
+    const sizeLetter = combatSize.letter ?? "M";
+    const sizeDisplay = sizeVal === 1 ? `1${sizeLetter}` : `${sizeVal}`;
+
+    // Stability
+    const stability = actor.system.combat?.stability ?? 0;
+
+    // Movement
+    const mov = actor.system.movement ?? {};
+    const movSpeed = mov.value ?? 5;
+    const movTypes = Array.from(mov.types ?? []);
+    const movDisplay = movTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ") || "Walk";
+    const movDisengage = mov.disengage ?? 1;
+
+    // Skills
+    const skillSet = actor.system.skills?.value ?? [];
+    const skillList = Array.from(skillSet)
+      .map(key => globalThis.ds?.CONFIG?.skills?.list?.[key]?.label ?? (key.charAt(0).toUpperCase() + key.slice(1)))
+      .sort();
+
+    // Conditions — build from CONFIG.statusEffects, mark active ones
+    let conditionsData = null;
+    if (game.settings.get(MODULE_ID, "showConditionsPanel")) {
+      const activeStatuses = actor.statuses ?? new Set();
+      const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
+      conditionsData = DS_CONDITIONS.map(id => {
+        const cfg = CONFIG.statusEffects[id] ?? {};
+        return {
+          id,
+          name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
+          icon: cfg.icon ?? null,
+          active: activeStatuses.has(id),
+        };
+      });
+    }
+
+    charPanel = {
+      name: actor.name,
+      stamina: {
+        label: staminaLabel,
+        fillLeft:    mainFillLeft.toFixed(2),
+        fillWidth:   mainFillWidth.toFixed(2),
+        fillColor,
+        zeroPercent: zeroPercent.toFixed(2),
+        tempLeft,
+        tempWidth,
+      },
+      recoveries: {
+        value:         rec?.value ?? 0,
+        max:           rec?.max ?? 0,
+        recoveryValue,
+      },
+      surges: surgesCount,
+      heroicResource: { name: heroicResourceName, value: heroicResourceValue },
+      size: sizeDisplay,
+      stability,
+      movement: { speed: movSpeed, display: movDisplay, disengage: movDisengage },
+      skills: skillList,
+    };
+  }
+
+  // Conditions — built independently of charPanel setting
+  let conditions = null;
+  if (game.settings.get(MODULE_ID, "showConditionsPanel")) {
+    const activeStatuses = actor.statuses ?? new Set();
+    const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
+    conditions = DS_CONDITIONS.map(id => {
+      const cfg = CONFIG.statusEffects[id] ?? {};
+      return {
+        id,
+        name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
+        icon: cfg.icon ?? null,
+        active: activeStatuses.has(id),
+      };
+    });
+  }
+
+  return { sections, charPanel, conditions };
 }
 
 /* ================================================================
@@ -526,5 +655,65 @@ export async function buildMonsterData(actor) {
   }
   if (villainActions.length) sections.push({ title: loc("DSAHUD.Sections.VillainAction"), items: villainActions });
 
-  return sections;
+  // ---- NPC charPanel (stamina bar, size/movement) ----
+  let charPanel = null;
+  if (game.settings.get(MODULE_ID, "showCharPanel")) {
+    const staminaMax = actor.system.stamina.max ?? 0;
+    const staminaVal = actor.system.stamina.value ?? 0;
+    const fillWidth = staminaMax > 0 ? Math.max(0, Math.min(100, (staminaVal / staminaMax) * 100)) : 0;
+    const ratio = staminaMax > 0 ? Math.max(0, Math.min(1, staminaVal / staminaMax)) : 0;
+    const hue = Math.round(ratio * 120);
+    const fillColor = `hsl(${hue}, 75%, 42%)`;
+    const staminaLabel = `${staminaVal} / ${staminaMax}`;
+
+    const combatSize = actor.system.combat?.size ?? {};
+    const sizeVal = combatSize.value ?? 1;
+    const sizeLetter = combatSize.letter ?? "M";
+    const sizeDisplay = sizeVal === 1 ? `1${sizeLetter}` : `${sizeVal}`;
+    const stability = actor.system.combat?.stability ?? 0;
+
+    const mov = actor.system.movement ?? {};
+    const movSpeed = mov.value ?? 5;
+    const movTypes = Array.from(mov.types ?? []);
+    const movDisplay = movTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ") || "Walk";
+    const movDisengage = mov.disengage ?? 1;
+
+    charPanel = {
+      name: actor.name,
+      stamina: {
+        label: staminaLabel,
+        fillLeft: "0",
+        fillWidth: fillWidth.toFixed(2),
+        fillColor,
+        zeroPercent: null,
+        tempLeft: null,
+        tempWidth: null,
+      },
+      recoveries: null,
+      surges: null,
+      heroicResource: null,
+      size: sizeDisplay,
+      stability,
+      movement: { speed: movSpeed, display: movDisplay, disengage: movDisengage },
+      skills: null,
+    };
+  }
+
+  // Conditions — built independently of charPanel setting
+  let conditions = null;
+  if (game.settings.get(MODULE_ID, "showConditionsPanel")) {
+    const activeStatuses = actor.statuses ?? new Set();
+    const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
+    conditions = DS_CONDITIONS.map(id => {
+      const cfg = CONFIG.statusEffects[id] ?? {};
+      return {
+        id,
+        name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
+        icon: cfg.icon ?? null,
+        active: activeStatuses.has(id),
+      };
+    });
+  }
+
+  return { sections, charPanel, conditions };
 }

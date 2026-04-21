@@ -98,6 +98,12 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
       await spendPotencySurge(actor);
       break;
     }
+
+    /* ---- Toggle status condition ---- */
+    case "toggleCondition": {
+      await actor.toggleStatusEffect(actionId);
+      break;
+    }
   }
 }
 

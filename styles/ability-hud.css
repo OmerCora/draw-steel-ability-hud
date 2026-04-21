@@ -169,6 +169,308 @@
   border-radius: 3px;
 }
 
+/* ================================================================
+ *  2-column Character popup
+ * ================================================================ */
+
+.dsahud-popup--char.active {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  max-width: 620px;
+  max-height: 72vh;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Left column — character overview */
+.dsahud-char-panel {
+  width: 196px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 10px 10px 10px;
+  border-right: 1px solid rgba(128, 128, 128, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dsahud-char-panel::-webkit-scrollbar { width: 4px; }
+.dsahud-char-panel::-webkit-scrollbar-track { background: transparent; }
+.dsahud-char-panel::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 2px; }
+
+/* Right column — tools sections */
+.dsahud-tools-col {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 224px;
+  padding: 8px;
+}
+
+.dsahud-tools-col::-webkit-scrollbar { width: 4px; }
+.dsahud-tools-col::-webkit-scrollbar-track { background: transparent; }
+.dsahud-tools-col::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 2px; }
+
+/* Conditions column */
+.dsahud-conditions-col {
+  width: 148px;
+  min-width: 148px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.dsahud-conditions-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+}
+
+.dsahud-conditions-list::-webkit-scrollbar { width: 4px; }
+.dsahud-conditions-list::-webkit-scrollbar-track { background: transparent; }
+.dsahud-conditions-list::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 2px; }
+
+.dsahud-condition-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(200,190,175,0.85);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.dsahud-condition-btn:hover {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+}
+
+.dsahud-condition-btn.active {
+  background: rgba(180, 50, 50, 0.28);
+  border-color: rgba(220, 80, 80, 0.65);
+  color: rgba(255, 200, 200, 0.95);
+}
+
+.dsahud-condition-btn.active:hover {
+  background: rgba(180, 50, 50, 0.40);
+}
+
+.dsahud-condition-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.dsahud-condition-icon-fa {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.dsahud-condition-btn.active .dsahud-condition-icon,
+.dsahud-condition-btn.active .dsahud-condition-icon-fa {
+  opacity: 1;
+}
+
+.dsahud-condition-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actor name */
+.dsahud-char-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: rgba(230, 220, 200, 0.95);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Stamina bar ---- */
+.dsahud-stamina-wrap {
+  padding: 2px 0 6px;
+}
+
+.dsahud-stamina-track {
+  position: relative;
+  height: 14px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: visible;
+}
+
+.dsahud-stamina-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.2s, left 0.2s;
+}
+
+/* Temp stamina: tinier blue bar sticking above the main bar */
+.dsahud-stamina-temp {
+  position: absolute;
+  height: 8px;
+  top: -7px;
+  background: #4499ee;
+  border-radius: 2px;
+  opacity: 0.9;
+  box-shadow: 0 0 4px rgba(68, 153, 238, 0.6);
+}
+
+/* Zero marker */
+.dsahud-stamina-zero {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+/* Stamina text label centered in track */
+.dsahud-stamina-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 1);
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ---- Character panel sections ---- */
+.dsahud-cp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dsahud-cp-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  opacity: 0.45;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  margin-bottom: 1px;
+}
+
+.dsahud-cp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.dsahud-cp-lbl {
+  opacity: 0.7;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dsahud-cp-icon {
+  font-size: 10px;
+  opacity: 0.85;
+  width: 12px;
+  text-align: center;
+}
+
+.dsahud-cp-val {
+  font-weight: 600;
+  color: rgba(220, 210, 190, 0.95);
+  text-align: right;
+}
+
+/* ---- 2×2 stats grid ---- */
+.dsahud-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.dsahud-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(40, 40, 40, 0.55);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  text-align: center;
+}
+
+.dsahud-stat-lbl {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.45;
+  line-height: 1.2;
+}
+
+.dsahud-stat-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(220, 210, 190, 0.95);
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+}
+
+.dsahud-stat-sub {
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.6;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ---- Skills list ---- */
+.dsahud-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.dsahud-skill-pill {
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(60, 55, 45, 0.7);
+  border: 1px solid rgba(128, 120, 90, 0.35);
+  color: rgba(200, 190, 165, 0.9);
+  white-space: nowrap;
+}
+
 /* ---- Fallback Item Tooltip (mirrors DS Plus style, used when DS Plus is not active) ---- */
 #dsahud-tooltip {
   --dsp-surface-raised: light-dark(#e0d9ce, #1e1e1e);
