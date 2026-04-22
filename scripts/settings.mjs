@@ -43,6 +43,21 @@ export function registerSettings() {
   });
 
   /**
+   * Show Favorites Button — adds a Favorites button (first) when Draw Steel Plus is active.
+   * Only registered/shown when DS+ is active.
+   */
+  game.settings.register(MODULE_ID, "showFavoritesButton", {
+    name: game.i18n.localize("DSAHUD.Settings.ShowFavoritesButton.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.ShowFavoritesButton.Hint"),
+    scope: "world",
+    config: game.modules.get("draw-steel-plus")?.active ?? false,
+    requiresReload: false,
+    type: Boolean,
+    default: true,
+    onChange: () => {},
+  });
+
+  /**
    * Basic Abilities Configuration — a JSON object mapping UUID →
    * { userId: boolean, __monsters__: boolean, __retainers__: boolean }.
    * Default: empty = all enabled.

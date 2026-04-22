@@ -330,6 +330,22 @@ export async function buildTriggeredData(actor) {
 }
 
 /* ================================================================
+ *  Button: No Action
+ * ================================================================ */
+
+export async function buildNoActionData(actor) {
+  const sections = [];
+  const noAction = [];
+  for (const item of actor.items) {
+    if (item.type !== "ability") continue;
+    if (item.system.type !== "none") continue;
+    noAction.push(abilityEntry(item));
+  }
+  if (noAction.length) sections.push({ title: loc("DSAHUD.Sections.NoAction"), items: noAction });
+  return sections;
+}
+
+/* ================================================================
  *  Button 4: Character
  * ================================================================ */
 
@@ -500,6 +516,83 @@ export async function buildCharacterData(actor) {
   }
 
   return { sections, charPanel, conditions };
+}
+
+/* ================================================================
+ *  Favorites Button (Draw Steel Plus)
+ * ================================================================ */
+
+export async function buildFavoritesData(actor) {
+  const sections = [];
+  const isNpc = actor.type === "npc";
+
+  const basicDsids = await getBasicAbilityDsids();
+  const knownMainCategories = new Set(["signature", "heroic", "epic", "freeStrike"]);
+
+  // Main action sub-buckets (mirrors buildMainActionData)
+  const signature   = [];
+  const heroic      = [];
+  const basics      = [];
+  const freeStrikes = [];
+  // Other type buckets
+  const maneuvers    = [];
+  const freeManeuvers = [];
+  const triggered    = [];
+  const freeTriggered = [];
+  const noAction     = [];
+  const features     = [];
+  const items        = [];
+
+  for (const item of actor.items) {
+    if (!item.flags?.["draw-steel-plus"]?.favorite) continue;
+
+    if (item.type === "ability") {
+      const t   = item.system.type;
+      const cat = item.system.category;
+      const dsid = item.system._dsid;
+
+      if (t === "main") {
+        if (cat === "freeStrike") {
+          freeStrikes.push(abilityEntry(item));
+        } else if (dsid && basicDsids.has(dsid)) {
+          basics.push(abilityEntry(item));
+        } else if (cat === "signature") {
+          signature.push(abilityEntry(item));
+        } else if (cat === "heroic" || cat === "epic") {
+          heroic.push(abilityEntry(item));
+        } else if (!knownMainCategories.has(cat)) {
+          // Uncategorized: has resource cost → heroic bucket, otherwise → signature bucket
+          if (item.system.resource) heroic.push(abilityEntry(item));
+          else signature.push(abilityEntry(item));
+        }
+      } else if (t === "maneuver") maneuvers.push(abilityEntry(item));
+      else if (t === "freeManeuver") freeManeuvers.push(abilityEntry(item));
+      else if (t === "triggered") triggered.push(abilityEntry(item));
+      else if (t === "freeTriggered") freeTriggered.push(abilityEntry(item));
+      else if (t === "none") noAction.push(abilityEntry(item));
+      else signature.push(abilityEntry(item)); // fallback
+    } else if (item.type === "treasure") {
+      items.push(featureEntry(item, "fa-solid fa-flask"));
+    } else {
+      // features, perks, titles, complications, ancestryTraits, etc.
+      features.push(featureEntry(item, "fa-solid fa-star"));
+    }
+  }
+
+  if (signature.length) sections.push({ title: loc("DSAHUD.Sections.Signature"), items: signature });
+  heroic.sort((a, b) => ((Number(a.cost) || 0) - (Number(b.cost) || 0)) || a.name.localeCompare(b.name));
+  if (heroic.length) sections.push({ title: loc(isNpc ? "DSAHUD.Sections.Malice" : "DSAHUD.Sections.Heroic"), items: heroic });
+  if (basics.length) sections.push({ title: loc("DSAHUD.Sections.BasicAbilities"), items: basics });
+  if (freeStrikes.length) sections.push({ title: loc("DSAHUD.Sections.FreeStrikes"), items: freeStrikes });
+  if (maneuvers.length) sections.push({ title: loc("DSAHUD.Sections.SpecialManeuver"), items: maneuvers });
+  if (freeManeuvers.length) sections.push({ title: loc("DSAHUD.Sections.FreeManeuver"), items: freeManeuvers });
+  if (triggered.length) sections.push({ title: loc("DSAHUD.Sections.TriggeredAction"), items: triggered });
+  if (freeTriggered.length) sections.push({ title: loc("DSAHUD.Sections.FreeTriggeredAction"), items: freeTriggered });
+  if (noAction.length) sections.push({ title: loc("DSAHUD.Sections.NoAction"), items: noAction });
+  if (features.length) sections.push({ title: loc("DSAHUD.Sections.Feature"), items: features });
+  if (items.length) sections.push({ title: loc("DSAHUD.Sections.Item"), items });
+
+  return sections;
 }
 
 /* ================================================================

@@ -4,6 +4,8 @@
   "DSAHUD.Buttons.MainAction": "Main Action",
   "DSAHUD.Buttons.Maneuver": "Maneuver",
   "DSAHUD.Buttons.TriggeredAction": "Triggered Action",
+  "DSAHUD.Buttons.NoAction": "No Action",
+  "DSAHUD.Buttons.Favorites": "Favorites",
   "DSAHUD.Buttons.Character": "Character",
   "DSAHUD.Buttons.Items": "Items",
   "DSAHUD.Buttons.Features": "Features",
@@ -24,6 +26,10 @@
   "DSAHUD.Sections.HomebrewManeuver": "Homebrew Maneuver",
   "DSAHUD.Sections.TriggeredAction": "Triggered Action",
   "DSAHUD.Sections.FreeTriggeredAction": "Free Triggered Action",
+  "DSAHUD.Sections.NoAction": "No Action",
+  "DSAHUD.Sections.MainAction": "Main Action",
+  "DSAHUD.Sections.Maneuver": "Maneuver",
+  "DSAHUD.Sections.Item": "Item",
   "DSAHUD.Sections.AbilityTest": "Ability Test",
   "DSAHUD.Sections.Recovery": "Recovery",
   "DSAHUD.Sections.HeroTokens": "Hero Tokens",
@@ -47,6 +53,8 @@
 
   "DSAHUD.Notify.NoSurges": "Not enough surges!",
 
+  "DSAHUD.Settings.ShowFavoritesButton.Name": "Show Favorites Button",
+  "DSAHUD.Settings.ShowFavoritesButton.Hint": "Add a Favorites button (shown first) that lists all abilities, features, and items marked as favorites in Draw Steel Plus. Requires Draw Steel Plus to be active.",
   "DSAHUD.Settings.BasicAbilities.Name": "Basic Abilities Configuration",
   "DSAHUD.Settings.BasicAbilities.Hint": "Configure which basic abilities are shown for each player.",
   "DSAHUD.Settings.BasicAbilities.Label": "Configure",

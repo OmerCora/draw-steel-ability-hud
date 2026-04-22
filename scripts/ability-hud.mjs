@@ -1,6 +1,6 @@
 ﻿import { MODULE_ID } from "./config.mjs";
 import { handleAction } from "./actions.mjs";
-import { buildMainActionData, buildManeuverData, buildTriggeredData, buildCharacterData, buildItemsData, buildFeaturesData, buildMaliceData, buildVillainActionData, buildMonsterData } from "./data-builder.mjs";
+import { buildMainActionData, buildManeuverData, buildTriggeredData, buildNoActionData, buildFavoritesData, buildCharacterData, buildItemsData, buildFeaturesData, buildMaliceData, buildVillainActionData, buildMonsterData } from "./data-builder.mjs";
 
 /**
  * Fixed HUD bar rendered above the Foundry hotbar.
@@ -46,14 +46,31 @@ export class AbilityHud extends Application {
     }
 
     const buttons = [];
+    const dspFavoritesEnabled = (game.modules.get("draw-steel-plus")?.active ?? false)
+      && (game.settings.get(MODULE_ID, "showFavoritesButton") ?? false);
 
     if (actor.type === "hero") {
+      const noActionSections = await buildNoActionData(actor);
+      if (dspFavoritesEnabled) {
+        const favSections = await buildFavoritesData(actor);
+        if (favSections.length) buttons.push({ id: "favorites", label: game.i18n.localize("DSAHUD.Buttons.Favorites"), icon: "fa-solid fa-star", sections: favSections });
+      }
       buttons.push(
         { id: "main-action", label: game.i18n.localize("DSAHUD.Buttons.MainAction"), icon: "fa-solid fa-sword", sections: await buildMainActionData(actor) },
         { id: "maneuver", label: game.i18n.localize("DSAHUD.Buttons.Maneuver"), icon: "fa-solid fa-person-running", sections: await buildManeuverData(actor) },
         { id: "triggered-action", label: game.i18n.localize("DSAHUD.Buttons.TriggeredAction"), icon: "fa-solid fa-bolt", sections: await buildTriggeredData(actor) },
+      );
+      if (noActionSections.length) {
+        buttons.push({ id: "no-action", label: game.i18n.localize("DSAHUD.Buttons.NoAction"), icon: "fa-solid fa-circle-pause", sections: noActionSections });
+      }
+      const itemsSections = await buildItemsData(actor);
+      buttons.push(
         { id: "character", label: game.i18n.localize("DSAHUD.Buttons.Character"), icon: "fa-solid fa-user", ...(await buildCharacterData(actor)) },
-        { id: "items", label: game.i18n.localize("DSAHUD.Buttons.Items"), icon: "fa-solid fa-bag-shopping", sections: await buildItemsData(actor) },
+      );
+      if (itemsSections.length) {
+        buttons.push({ id: "items", label: game.i18n.localize("DSAHUD.Buttons.Items"), icon: "fa-solid fa-bag-shopping", sections: itemsSections });
+      }
+      buttons.push(
         { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
       );
     } else if (actor.type === "npc") {
@@ -67,10 +84,20 @@ export class AbilityHud extends Application {
       );
     } else if (actor.type === "retainer") {
       // Retainer: hero-like actions, but no items button
+      const noActionSections = await buildNoActionData(actor);
+      if (dspFavoritesEnabled) {
+        const favSections = await buildFavoritesData(actor);
+        if (favSections.length) buttons.push({ id: "favorites", label: game.i18n.localize("DSAHUD.Buttons.Favorites"), icon: "fa-solid fa-star", sections: favSections });
+      }
       buttons.push(
         { id: "main-action", label: game.i18n.localize("DSAHUD.Buttons.MainAction"), icon: "fa-solid fa-sword", sections: await buildMainActionData(actor) },
         { id: "maneuver", label: game.i18n.localize("DSAHUD.Buttons.Maneuver"), icon: "fa-solid fa-person-running", sections: await buildManeuverData(actor) },
         { id: "triggered-action", label: game.i18n.localize("DSAHUD.Buttons.TriggeredAction"), icon: "fa-solid fa-bolt", sections: await buildTriggeredData(actor) },
+      );
+      if (noActionSections.length) {
+        buttons.push({ id: "no-action", label: game.i18n.localize("DSAHUD.Buttons.NoAction"), icon: "fa-solid fa-circle-pause", sections: noActionSections });
+      }
+      buttons.push(
         { id: "character", label: game.i18n.localize("DSAHUD.Buttons.Character"), icon: "fa-solid fa-user", ...(await buildCharacterData(actor)) },
         { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
       );
@@ -503,13 +530,35 @@ export class AbilityHud extends Application {
 
     const slots = hotbar.querySelectorAll("li.macro-slot, .macro-slot, li[data-slot]");
     const hRect = hotbar.getBoundingClientRect();
+    const bottom = (window.innerHeight - hRect.top + 6) + "px";
+
+    /** Center the HUD over [refLeft, refRight] when it's wider; else left-align. */
+    const applyPosition = (refLeft, refRight, wrap) => {
+      const refWidth  = refRight - refLeft;
+      const refCenter = (refLeft + refRight) / 2;
+
+      // Unconstrain width so scrollWidth reflects natural content size
+      el.style.width = "max-content";
+      const barWidth = bar.scrollWidth; // forced layout read
+
+      let hudLeft;
+      if (barWidth > refWidth) {
+        hudLeft = Math.round(refCenter - barWidth / 2);
+        // Clamp so the HUD doesn't spill off-screen
+        hudLeft = Math.max(4, Math.min(hudLeft, window.innerWidth - barWidth - 4));
+      } else {
+        hudLeft = refLeft;
+      }
+
+      bar.style.flexWrap = wrap;
+      el.style.left   = hudLeft + "px";
+      el.style.width  = Math.max(barWidth, refWidth) + "px";
+      el.style.bottom = bottom;
+    };
 
     if (slots.length < 2) {
       // Fallback: match full hotbar
-      bar.style.flexWrap = "nowrap";
-      el.style.left   = hRect.left + "px";
-      el.style.width  = hRect.width + "px";
-      el.style.bottom = (window.innerHeight - hRect.top + 6) + "px";
+      applyPosition(hRect.left, hRect.right, "nowrap");
       return;
     }
 
@@ -522,24 +571,12 @@ export class AbilityHud extends Application {
       const row1Rects = rects.filter(r => r.top <= firstTop + 4);
       const row2Rects = rects.filter(r => r.top > firstTop + 4);
 
-      const row1Left  = row1Rects[0].left;
-      const row1Right = row1Rects[row1Rects.length - 1].right;
-      const row2Left  = row2Rects[0].left;
-      const row2Right = row2Rects[row2Rects.length - 1].right;
+      const left  = Math.min(row1Rects[0].left, row2Rects[0].left);
+      const right = Math.max(row1Rects[row1Rects.length - 1].right, row2Rects[row2Rects.length - 1].right);
 
-      // Use the wider row's span, align left to leftmost slot
-      const left  = Math.min(row1Left, row2Left);
-      const width = Math.max(row1Right, row2Right) - left;
-
-      bar.style.flexWrap = "wrap";
-      el.style.left   = left + "px";
-      el.style.width  = width + "px";
-      el.style.bottom = (window.innerHeight - hRect.top + 6) + "px";
+      applyPosition(left, right, "wrap");
     } else {
-      bar.style.flexWrap = "nowrap";
-      el.style.left   = rects[0].left + "px";
-      el.style.width  = (rects[rects.length - 1].right - rects[0].left) + "px";
-      el.style.bottom = (window.innerHeight - hRect.top + 6) + "px";
+      applyPosition(rects[0].left, rects[rects.length - 1].right, "nowrap");
     }
   }
 
