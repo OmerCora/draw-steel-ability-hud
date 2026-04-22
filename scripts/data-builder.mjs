@@ -73,22 +73,20 @@ function staticEntry(id, name, emoji, actionType, cost = "") {
 
 /** Get the set of _dsid values from the Basic Abilities compendium folder. */
 let _basicAbilityDsids = null;
-let _basicAbilityDsidToUuid = null;
 async function getBasicAbilityDsids() {
   if (_basicAbilityDsids) return _basicAbilityDsids;
   _basicAbilityDsids = new Set();
-  _basicAbilityDsidToUuid = new Map();
   const pack = game.packs.get("draw-steel.abilities");
   if (!pack) return _basicAbilityDsids;
   const folders = pack.folders ?? [];
-  const basicFolder = folders.find(f => f.name === "Basic Abilities");
+  const basicFolder = folders.find(f => f.name === "Basic Abilities")
+    ?? folders.find(f => f.name === "Basic Actions");
   if (!basicFolder) return _basicAbilityDsids;
   const index = await pack.getIndex({ fields: ["system._dsid", "folder"] });
   for (const entry of index) {
     if (entry.folder !== basicFolder.id) continue;
     if (entry.system?._dsid) {
       _basicAbilityDsids.add(entry.system._dsid);
-      _basicAbilityDsidToUuid.set(entry.system._dsid, `Compendium.draw-steel.abilities.Item.${entry._id}`);
     }
   }
   return _basicAbilityDsids;
@@ -103,6 +101,8 @@ async function getGenericAbilities(actor, abilityType) {
   if (actor.type === "hero") {
     const owner = game.users.find(u => !u.isGM && actor.testUserPermission(u, "OWNER"));
     column = owner?.id ?? game.user.id;
+  } else if (actor.type === "retainer") {
+    column = "__retainers__";
   } else {
     column = "__monsters__";
   }
@@ -110,25 +110,27 @@ async function getGenericAbilities(actor, abilityType) {
   const pack = game.packs.get("draw-steel.abilities");
   if (!pack) return [];
 
-  // Get all items in the "Basic Abilities" folder
-  const index = await pack.getIndex({ fields: ["system.type", "system._dsid", "folder", "name", "img", "system.resource", "system.category"] });
-
-  // Find the "Basic Abilities" folder in the pack
   const folders = pack.folders ?? [];
-  const basicFolder = folders.find(f => f.name === "Basic Abilities");
+  const basicFolder = folders.find(f => f.name === "Basic Abilities")
+    ?? folders.find(f => f.name === "Basic Actions");
   if (!basicFolder) return [];
+
+  const index = await pack.getIndex({ fields: ["system.type", "system._dsid", "folder", "name", "img", "system.resource", "system.category"] });
+  // Compendium uses "action" for main-action type entries; map "main" → ["main", "action"]
+  const requested = abilityType
+    ? (Array.isArray(abilityType) ? abilityType : [abilityType])
+    : null;
+  const allowedTypes = requested
+    ? requested.flatMap(t => t === "main" ? ["main", "action"] : [t])
+    : null;
 
   const results = [];
   for (const entry of index) {
     if (entry.folder !== basicFolder.id) continue;
-    // Check ability type
-    if (abilityType && entry.system?.type !== abilityType) continue;
-    // Exclude freeStrike category — shown in its own section from actor items
+    if (allowedTypes && !allowedTypes.includes(entry.system?.type)) continue;
     if (entry.system?.category === "freeStrike") continue;
 
     const uuid = `Compendium.draw-steel.abilities.Item.${entry._id}`;
-
-    // Check if this ability is enabled for this column
     const abilityConfig = config[uuid];
     if (abilityConfig && abilityConfig[column] === false) continue;
 
@@ -181,6 +183,7 @@ export async function buildMainActionData(actor) {
   const sections = [];
   const items = actor.items;
   const isNpc = actor.type === "npc";
+  const isRetainer = actor.type === "retainer";
 
   const basicDsids = await getBasicAbilityDsids();
 
@@ -229,25 +232,16 @@ export async function buildMainActionData(actor) {
   }
   if (freeStrikes.length) sections.push({ title: loc("DSAHUD.Sections.FreeStrikes"), items: freeStrikes });
 
-  // NPC Free Strike button (system-level, uses actor.system.performFreeStrike)
-  if (isNpc) {
+  // NPC / Retainer Free Strike button (system-level, uses actor.system.performFreeStrike)
+  if (isNpc || isRetainer) {
     const fs = actor.system.freeStrike;
-    const dmg = fs?.value ?? actor.system.monster?.freeStrike ?? "?";
+    const dmg = fs?.value ?? actor.system.monster?.freeStrike ?? actor.system.retainer?.freeStrike ?? "?";
     sections.push({
       title: loc("DSAHUD.Sections.FreeStrike"),
       items: [staticEntry("npc-free-strike", loc("DSAHUD.Sections.FreeStrike"), "fa-solid fa-sword", "npcFreeStrike", `${dmg}`)],    });
   }
 
-  // Basic Abilities — actor-synced copies first, then any extra compendium picks not already on the actor
-  const config = game.settings.get(MODULE_ID, "genericAbilitiesConfig") ?? {};
-  let basicColumn;
-  if (actor.type === "hero") {
-    const owner = game.users.find(u => !u.isGM && actor.testUserPermission(u, "OWNER"));
-    basicColumn = owner?.id ?? game.user.id;
-  } else {
-    basicColumn = "__monsters__";
-  }
-
+  // Basic Abilities — include actor-owned basics plus generic compendium basics
   const basicActorItems = [];
   const basicActorDsids = new Set();
   for (const item of items) {
@@ -255,17 +249,11 @@ export async function buildMainActionData(actor) {
     if (item.system.type !== "main") continue;
     if (item.system.category === "freeStrike") continue;
     if (!item.system._dsid || !basicDsids.has(item.system._dsid)) continue;
-    // Apply config filter using dsid → compendium UUID lookup
-    const compendiumUuid = _basicAbilityDsidToUuid?.get(item.system._dsid);
-    if (compendiumUuid) {
-      const abilityConfig = config[compendiumUuid];
-      if (abilityConfig && abilityConfig[basicColumn] === false) continue;
-    }
     basicActorDsids.add(item.system._dsid);
     basicActorItems.push(abilityEntry(item));
   }
+
   const basicCompendium = await getGenericAbilities(actor, "main");
-  // De-duplicate: skip compendium entries whose dsid the actor already has synced
   const basicExtra = basicCompendium.filter(e => !basicActorDsids.has(e._dsid));
   const basic = [...basicActorItems, ...basicExtra];
   if (basic.length) sections.push({ title: loc("DSAHUD.Sections.BasicAbilities"), items: basic });
@@ -347,6 +335,8 @@ export async function buildTriggeredData(actor) {
 
 export async function buildCharacterData(actor) {
   const sections = [];
+  const isHero = actor.type === "hero";
+  const isRetainer = actor.type === "retainer";
 
   // Ability Tests
   const chars = actor.system.characteristics ?? {};
@@ -357,15 +347,16 @@ export async function buildCharacterData(actor) {
   if (charItems.length) sections.push({ title: loc("DSAHUD.Sections.AbilityTest"), items: charItems });
 
   // Recovery
-  if (actor.type === "hero") {
+  if (isHero || isRetainer) {
     const rec = actor.system.recoveries;
     sections.push({
       title: loc("DSAHUD.Sections.Recovery"),
       items: [staticEntry("recovery", loc("DSAHUD.Actions.SpendRecovery"), "fa-solid fa-heart-pulse", "recovery", `${rec?.value ?? 0}/${rec?.max ?? 0}`)],    });
+  }
 
+  if (isHero) {
     // Hero Tokens
     const heroTokens = game.actors?.heroTokens?.value ?? 0;
-    const surges = actor.system.hero?.surges ?? 0;
     sections.push({
       title: loc("DSAHUD.Sections.HeroTokens"),
       items: [
@@ -374,7 +365,10 @@ export async function buildCharacterData(actor) {
       ],
     });
 
-    // Spend Surge
+  }
+
+  // Spend Surge (heroes and retainers can spend)
+  if (isHero || isRetainer) {
     sections.push({
       title: loc("DSAHUD.Sections.SpendSurge"),
       items: [
@@ -386,10 +380,10 @@ export async function buildCharacterData(actor) {
     });
   }
 
-  // ---- Character panel (left column, heroes only) ----
+  // ---- Character panel (left column; hero/retainer) ----
   let charPanel = null;
 
-  if (actor.type === "hero" && game.settings.get(MODULE_ID, "showCharPanel")) {
+  if ((isHero || isRetainer) && game.settings.get(MODULE_ID, "showCharPanel")) {
     const staminaMax = actor.system.stamina.max ?? 0;
     const staminaVal = actor.system.stamina.value ?? 0;
     const staminaTemp = actor.system.stamina.temporary ?? 0;
@@ -398,9 +392,12 @@ export async function buildCharacterData(actor) {
     // fillPos = where current stamina sits in that range (0% = minStamina, 100% = max).
     // Bar always fills from the left edge to fillPos.
     // zeroPercent = where value=0 sits (the white marker line), always ~33%.
-    const minStamina = staminaMax > 0 ? Math.floor(-staminaMax * 0.5) : -10;
-    const totalRange = staminaMax - minStamina; // ~1.5 × staminaMax
-    const zeroPercent = totalRange > 0 ? ((0 - minStamina) / totalRange * 100) : 33.33;
+    const usesHeroDeathRange = isHero || isRetainer;
+    const minStamina = usesHeroDeathRange ? (staminaMax > 0 ? Math.floor(-staminaMax * 0.5) : -10) : 0;
+    const totalRange = staminaMax - minStamina;
+    const zeroPercent = usesHeroDeathRange
+      ? (totalRange > 0 ? ((0 - minStamina) / totalRange * 100) : 33.33)
+      : null;
 
     const clampedVal = Math.max(minStamina, Math.min(staminaMax, staminaVal));
     const fillPos = totalRange > 0 ? ((clampedVal - minStamina) / totalRange * 100) : 0;
@@ -414,7 +411,7 @@ export async function buildCharacterData(actor) {
     const mainFillLeft = 0;
     const mainFillWidth = Math.max(0, fillPos);
 
-    // Temp stamina bar — extends rightward from where the positive fill ends
+    // Temp stamina bar
     let tempLeft = null, tempWidth = null;
     if (staminaTemp > 0 && totalRange > 0) {
       const fillEndPos = ((Math.min(staminaVal, staminaMax) - minStamina) / totalRange * 100);
@@ -428,13 +425,14 @@ export async function buildCharacterData(actor) {
     const rec = actor.system.recoveries;
     const recoveryValue = rec?.recoveryValue ?? Math.floor((staminaMax) / 3);
 
-    // Heroic resource — name from class item
-    const classItem = actor.items.find(i => i.type === "class");
+    // Hero-only resource; surges (heroes use own, retainers use mentor's)
+    const classItem = isHero ? actor.items.find(i => i.type === "class") : null;
     const heroicResourceName = classItem?.system?.primary ?? "Heroic Resource";
-    const heroicResourceValue = actor.system.hero?.primary?.value ?? 0;
-
-    // Surges
-    const surgesCount = actor.system.hero?.surges ?? 0;
+    const heroicResourceValue = isHero ? (actor.system.hero?.primary?.value ?? 0) : null;
+    const mentor = isRetainer ? actor.system.retainer?.mentor : null;
+    const surgesCount = isHero
+      ? (actor.system.hero?.surges ?? 0)
+      : (isRetainer ? (mentor?.system?.hero?.surges ?? 0) : null);
 
     // Size
     const combatSize = actor.system.combat?.size ?? {};
@@ -452,36 +450,21 @@ export async function buildCharacterData(actor) {
     const movDisplay = movTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ") || "Walk";
     const movDisengage = mov.disengage ?? 1;
 
-    // Skills
-    const skillSet = actor.system.skills?.value ?? [];
+    // Skills (hero only)
+    const skillSet = isHero ? (actor.system.skills?.value ?? []) : [];
     const skillList = Array.from(skillSet)
       .map(key => globalThis.ds?.CONFIG?.skills?.list?.[key]?.label ?? (key.charAt(0).toUpperCase() + key.slice(1)))
       .sort();
 
-    // Conditions — build from CONFIG.statusEffects, mark active ones
-    let conditionsData = null;
-    if (game.settings.get(MODULE_ID, "showConditionsPanel")) {
-      const activeStatuses = actor.statuses ?? new Set();
-      const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
-      conditionsData = DS_CONDITIONS.map(id => {
-        const cfg = CONFIG.statusEffects[id] ?? {};
-        return {
-          id,
-          name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
-          icon: cfg.icon ?? null,
-          active: activeStatuses.has(id),
-        };
-      });
-    }
-
     charPanel = {
       name: actor.name,
+      mentor: (isRetainer && mentor) ? { name: mentor.name } : null,
       stamina: {
         label: staminaLabel,
         fillLeft:    mainFillLeft.toFixed(2),
         fillWidth:   mainFillWidth.toFixed(2),
         fillColor,
-        zeroPercent: zeroPercent.toFixed(2),
+        zeroPercent: zeroPercent !== null ? zeroPercent.toFixed(2) : null,
         tempLeft,
         tempWidth,
       },
@@ -491,11 +474,12 @@ export async function buildCharacterData(actor) {
         recoveryValue,
       },
       surges: surgesCount,
-      heroicResource: { name: heroicResourceName, value: heroicResourceValue },
+      showSurges: surgesCount !== null,
+      heroicResource: isHero ? { name: heroicResourceName, value: heroicResourceValue } : null,
       size: sizeDisplay,
       stability,
       movement: { speed: movSpeed, display: movDisplay, disengage: movDisengage },
-      skills: skillList,
+      skills: isHero ? skillList : null,
     };
   }
 

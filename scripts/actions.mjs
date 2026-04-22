@@ -51,8 +51,22 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
 
     /* ---- NPC Free Strike (system-level performFreeStrike) ---- */
     case "npcFreeStrike": {
-      if (typeof actor.system.performFreeStrike === "function") {
+      const canUseSystemFreeStrike = actor.type !== "retainer" && typeof actor.system.performFreeStrike === "function";
+      if (canUseSystemFreeStrike) {
         await actor.system.performFreeStrike();
+      } else {
+        const freeStrikeValue = actor.system.freeStrike?.value ?? actor.system.monster?.freeStrike ?? actor.system.retainer?.freeStrike;
+        if (freeStrikeValue === undefined || freeStrikeValue === null || freeStrikeValue === "") {
+          ui.notifications.warn("No free strike value found for this actor.");
+          break;
+        }
+
+        const damageEnricher = `[[/damage ${freeStrikeValue}]]`;
+        const enriched = await TextEditor.enrichHTML(damageEnricher, { rollData: actor.getRollData(), async: true });
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor }),
+          content: `<h3>Free Strike</h3><p>${enriched}</p>`,
+        });
       }
       break;
     }
@@ -112,13 +126,20 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
  * ================================================================ */
 
 async function spendDamageSurge(actor, count) {
-  const current = actor.system.hero?.surges ?? 0;
+  // Retainers spend from their mentor's surge pool
+  const surgeActor = actor.type === "retainer" ? actor.system.retainer?.mentor : actor;
+  if (!surgeActor) {
+    ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoMentor") || "Retainer has no mentor assigned.");
+    return;
+  }
+  const current = surgeActor.system.hero?.surges ?? 0;
   if (current < count) {
     ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoSurges"));
     return;
   }
 
-  const chars = actor.system?.characteristics ?? {};
+  // Damage uses the surge-providing actor's characteristics (mentor for retainers)
+  const chars = surgeActor.system?.characteristics ?? {};
   let highestChar = 0;
   for (const key of Object.keys(chars)) {
     const val = Number(chars[key]?.value ?? 0);
@@ -127,7 +148,7 @@ async function spendDamageSurge(actor, count) {
 
   const totalDamage = highestChar * count;
   const newSurges = current - count;
-  await actor.update({ "system.hero.surges": newSurges });
+  await surgeActor.update({ "system.hero.surges": newSurges });
 
   const damageEnricher = `[[/damage ${totalDamage}]]`;
   const enriched = await TextEditor.enrichHTML(damageEnricher, { rollData: actor.getRollData(), async: true });
@@ -142,14 +163,19 @@ async function spendDamageSurge(actor, count) {
 }
 
 async function spendPotencySurge(actor) {
-  const current = actor.system.hero?.surges ?? 0;
+  const surgeActor = actor.type === "retainer" ? actor.system.retainer?.mentor : actor;
+  if (!surgeActor) {
+    ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoMentor") || "Retainer has no mentor assigned.");
+    return;
+  }
+  const current = surgeActor.system.hero?.surges ?? 0;
   if (current < 2) {
     ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoSurges"));
     return;
   }
 
   const newSurges = current - 2;
-  await actor.update({ "system.hero.surges": newSurges });
+  await surgeActor.update({ "system.hero.surges": newSurges });
 
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),

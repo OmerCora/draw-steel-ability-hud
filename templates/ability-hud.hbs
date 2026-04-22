@@ -11,6 +11,9 @@
       {{#if this.charPanel}}
       <div class="dsahud-char-panel">
         <div class="dsahud-char-name">{{this.charPanel.name}}</div>
+        {{#if this.charPanel.mentor}}
+        <div class="dsahud-char-mentor">Mentor: {{this.charPanel.mentor.name}}</div>
+        {{/if}}
 
         <div class="dsahud-stamina-wrap">
           <div class="dsahud-stamina-track">
@@ -32,14 +35,18 @@
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-heart-pulse dsahud-cp-icon"></i> Recoveries</span>
             <span class="dsahud-cp-val">{{this.charPanel.recoveries.value}}/{{this.charPanel.recoveries.max}} (+{{this.charPanel.recoveries.recoveryValue}})</span>
           </div>
+          {{#if this.charPanel.showSurges}}
           <div class="dsahud-cp-row">
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-bolt dsahud-cp-icon"></i> Surges</span>
             <span class="dsahud-cp-val">{{this.charPanel.surges}}</span>
           </div>
+          {{/if}}
+          {{#if this.charPanel.heroicResource}}
           <div class="dsahud-cp-row">
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-fire dsahud-cp-icon"></i> {{this.charPanel.heroicResource.name}}</span>
             <span class="dsahud-cp-val">{{this.charPanel.heroicResource.value}}</span>
           </div>
+          {{/if}}
         </div>
         {{/if}}
 

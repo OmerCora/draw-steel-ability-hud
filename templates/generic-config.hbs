@@ -10,6 +10,9 @@
         {{#if hasMonsters}}
         <th>Monsters</th>
         {{/if}}
+        {{#if hasRetainers}}
+        <th>Retainers</th>
+        {{/if}}
       </tr>
     </thead>
     <tbody>
@@ -27,6 +30,12 @@
         <td>
           <input type="checkbox" name="{{this.itemId}}.__monsters__"
                  {{#if this.columns.__monsters__}}checked{{/if}}>
+        </td>
+        {{/if}}
+        {{#if ../hasRetainers}}
+        <td>
+          <input type="checkbox" name="{{this.itemId}}.__retainers__"
+                 {{#if this.columns.__retainers__}}checked{{/if}}>
         </td>
         {{/if}}
       </tr>

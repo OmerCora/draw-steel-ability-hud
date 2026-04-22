@@ -43,7 +43,8 @@ export function registerSettings() {
   });
 
   /**
-   * Generic Abilities Configuration — a JSON object mapping UUID → { userId: boolean, __monsters__: boolean }.
+   * Basic Abilities Configuration — a JSON object mapping UUID →
+   * { userId: boolean, __monsters__: boolean, __retainers__: boolean }.
    * Default: empty = all enabled.
    */
   game.settings.register(MODULE_ID, "genericAbilitiesConfig", {
@@ -81,13 +82,13 @@ export function registerSettings() {
 }
 
 /**
- * FormApplication for configuring which generic abilities are shown per user/monsters.
+ * FormApplication for configuring which generic abilities are shown per user/monsters/retainers.
  */
 class GenericAbilitiesConfig extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "dsahud-generic-abilities-config",
-      title: "Generic Abilities Configuration",
+      title: "Basic Abilities Configuration",
       template: `modules/${MODULE_ID}/templates/generic-config.hbs`,
       width: 700,
       height: "auto",
@@ -104,9 +105,10 @@ class GenericAbilitiesConfig extends FormApplication {
     const abilities = [];
     if (pack) {
       const folders = pack.folders ?? [];
-      const basicFolder = folders.find(f => f.name === "Basic Abilities");
+      const basicFolder = folders.find(f => f.name === "Basic Abilities")
+        ?? folders.find(f => f.name === "Basic Actions");
       if (basicFolder) {
-        const index = await pack.getIndex({ fields: ["system.type", "system.category", "folder", "name"] });
+        const index = await pack.getIndex({ fields: ["system.type", "system.category", "system._dsid", "folder", "name"] });
         for (const entry of index) {
           if (entry.folder !== basicFolder.id) continue;
           if (entry.system?.type === "move") continue;
@@ -134,16 +136,17 @@ class GenericAbilitiesConfig extends FormApplication {
         columns[u.id] = abilityConfig[u.id] !== false; // default true
       }
       columns["__monsters__"] = abilityConfig["__monsters__"] !== false;
+      columns["__retainers__"] = abilityConfig["__retainers__"] !== false;
       return { uuid: a.uuid, itemId: a.uuid.split(".").pop(), name: a.name, type: a.type, columns };
     });
 
-    return { rows, users, hasMonsters: true };
+    return { rows, users, hasMonsters: true, hasRetainers: true };
   }
 
   async _updateObject(_event, formData) {
     const config = {};
     const expanded = foundry.utils.expandObject(formData);
-    const allColumns = [...game.users.filter(u => !u.isGM).map(u => u.id), "__monsters__"];
+    const allColumns = [...game.users.filter(u => !u.isGM).map(u => u.id), "__monsters__", "__retainers__"];
     // Iterate every known ability; set each column explicitly — unchecked boxes are absent from formData so default to false
     for (const [itemId, uuid] of Object.entries(this._uuidByItemId ?? {})) {
       const val = expanded[itemId] ?? {};

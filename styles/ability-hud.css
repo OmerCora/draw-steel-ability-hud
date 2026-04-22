@@ -307,6 +307,17 @@
   white-space: nowrap;
 }
 
+/* Mentor sub-line for retainers */
+.dsahud-char-mentor {
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(200, 195, 180, 0.75);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- Stamina bar ---- */
 .dsahud-stamina-wrap {
   padding: 2px 0 6px;

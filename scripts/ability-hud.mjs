@@ -41,7 +41,7 @@ export class AbilityHud extends Application {
 
   async getData(options = {}) {
     const actor = this.#getActor();
-    if (!actor || (actor.type !== "hero" && actor.type !== "npc")) {
+    if (!actor || !["hero", "npc", "retainer"].includes(actor.type)) {
       return { hasActor: false, buttons: [] };
     }
 
@@ -56,13 +56,22 @@ export class AbilityHud extends Application {
         { id: "items", label: game.i18n.localize("DSAHUD.Buttons.Items"), icon: "fa-solid fa-bag-shopping", sections: await buildItemsData(actor) },
         { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
       );
-    } else {
+    } else if (actor.type === "npc") {
       // NPC: show abilities grouped by type
       buttons.push(
         { id: "main-action", label: game.i18n.localize("DSAHUD.Buttons.MainAction"), icon: "fa-solid fa-sword", sections: await buildMainActionData(actor) },
         { id: "maneuver", label: game.i18n.localize("DSAHUD.Buttons.Maneuver"), icon: "fa-solid fa-person-running", sections: await buildManeuverData(actor) },
         { id: "triggered-action", label: game.i18n.localize("DSAHUD.Buttons.TriggeredAction"), icon: "fa-solid fa-bolt", sections: await buildTriggeredData(actor) },
         { id: "monster", label: game.i18n.localize("DSAHUD.Buttons.Monster"), icon: "fa-solid fa-skull", ...(await buildMonsterData(actor)) },
+        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
+      );
+    } else if (actor.type === "retainer") {
+      // Retainer: hero-like actions, but no items button
+      buttons.push(
+        { id: "main-action", label: game.i18n.localize("DSAHUD.Buttons.MainAction"), icon: "fa-solid fa-sword", sections: await buildMainActionData(actor) },
+        { id: "maneuver", label: game.i18n.localize("DSAHUD.Buttons.Maneuver"), icon: "fa-solid fa-person-running", sections: await buildManeuverData(actor) },
+        { id: "triggered-action", label: game.i18n.localize("DSAHUD.Buttons.TriggeredAction"), icon: "fa-solid fa-bolt", sections: await buildTriggeredData(actor) },
+        { id: "character", label: game.i18n.localize("DSAHUD.Buttons.Character"), icon: "fa-solid fa-user", ...(await buildCharacterData(actor)) },
         { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
       );
     }
