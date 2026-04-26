@@ -34,13 +34,14 @@ function abilityEntry(item) {
 }
 
 /** Build a single action entry for a feature/treasure item (print to chat). */
-function featureEntry(item, emoji = "fa-solid fa-scroll") {
+function featureEntry(item, emoji = "fa-solid fa-scroll", alwaysShowQty = false) {
+  const qty = item.system?.quantity ?? 1;
   return {
     id: item.id,
     uuid: item.uuid,
     name: item.name,
     img: item.img,
-    cost: "",
+    cost: (alwaysShowQty || qty > 1) ? `x${qty}` : "",
     emoji,
     actionType: "feature",
     actionId: item.id,
@@ -376,7 +377,7 @@ export async function buildCharacterData(actor) {
     sections.push({
       title: loc("DSAHUD.Sections.HeroTokens"),
       items: [
-        staticEntry("heroTokenRecovery", loc("DSAHUD.Actions.HeroTokenRecovery"), "fa-solid fa-coin", "heroTokenRecovery", `${heroTokens} tokens`),
+        staticEntry("heroTokenRecovery", loc("DSAHUD.Actions.HeroTokenRecovery"), "fa-solid fa-coin", "heroTokenRecovery", "2 tokens"),
         staticEntry("gainSurges", loc("DSAHUD.Actions.GainSurges"), "fa-solid fa-bolt", "gainSurges", `1 token`),
       ],
     });
@@ -611,7 +612,7 @@ export async function buildItemsData(actor) {
   for (const item of items) {
     if (item.type !== "treasure") continue;
     const category = item.system.category ?? "";
-    if (category === "consumable") consumable.push(featureEntry(item, "fa-solid fa-flask"));
+    if (category === "consumable") consumable.push(featureEntry(item, "fa-solid fa-flask", true));
     else if (category === "trinket") trinket.push(featureEntry(item, "fa-solid fa-ring"));
     else if (category === "artifact") artifact.push(featureEntry(item, "fa-solid fa-gem"));
     else leveled.push(featureEntry(item, "fa-solid fa-sword"));
