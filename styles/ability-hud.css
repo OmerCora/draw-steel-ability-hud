@@ -547,6 +547,9 @@
   font-size: 11px;
   line-height: 1.35;
   opacity: 0.92;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Growth tables */

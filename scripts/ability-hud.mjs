@@ -248,10 +248,19 @@ export class AbilityHud extends Application {
       this._keepCharOpen = true;
 
       if (action === "increment") {
-        await api.adjustHeroicResource(actor, 1);
+        const current = actor.system.hero?.primary?.value ?? 0;
+        await actor.update({ "system.hero.primary.value": current + 1 });
         await this.render(false);
       } else if (action === "decrement") {
-        await api.adjustHeroicResource(actor, -1);
+        const current = actor.system.hero?.primary?.value ?? 0;
+        // Respect allowNegative (e.g. Clarity can go negative to -(1 + Reason))
+        const tabData = await api.buildHeroicTabData(actor);
+        const allowNeg = tabData?.classFeature?.allowNegative ?? false;
+        const minValue = allowNeg
+          ? -(1 + (actor.getRollData?.()?.characteristics?.reason?.value ?? 0))
+          : 0;
+        const next = Math.max(minValue, current - 1);
+        if (next !== current) await actor.update({ "system.hero.primary.value": next });
         await this.render(false);
       } else if (action === "gain") {
         const gainId = ev.currentTarget.dataset.gainId;
