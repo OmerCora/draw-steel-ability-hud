@@ -379,6 +379,8 @@ export async function buildCharacterData(actor) {
       items: [
         staticEntry("heroTokenRecovery", loc("DSAHUD.Actions.HeroTokenRecovery"), "fa-solid fa-coin", "heroTokenRecovery", "2 tokens"),
         staticEntry("gainSurges", loc("DSAHUD.Actions.GainSurges"), "fa-solid fa-bolt", "gainSurges", `1 token`),
+        staticEntry("heroTokenRerollTest", loc("DSAHUD.Actions.HeroTokenRerollTest"), "fa-solid fa-dice", "heroTokenRerollTest", "1 token"),
+        staticEntry("heroTokenSucceedSave", loc("DSAHUD.Actions.HeroTokenSucceedSave"), "fa-solid fa-shield-check", "heroTokenSucceedSave", "1 token"),
       ],
     });
 
@@ -473,11 +475,34 @@ export async function buildCharacterData(actor) {
       .map(key => globalThis.ds?.CONFIG?.skills?.list?.[key]?.label ?? (key.charAt(0).toUpperCase() + key.slice(1)))
       .sort();
 
+    // Immunities & weaknesses — pulled from system.damage.{immunities,weaknesses}
+    const dsCfg = globalThis.ds?.CONFIG;
+    const damageTypeLabels = {
+      all: game.i18n.localize("DRAW_STEEL.Actor.base.FIELDS.damage.immunities.all.label") || "All",
+    };
+    if (dsCfg?.damageTypes) {
+      for (const [type, info] of Object.entries(dsCfg.damageTypes)) {
+        damageTypeLabels[type] = info?.label ?? (type.charAt(0).toUpperCase() + type.slice(1));
+      }
+    }
+    const buildResistList = (record) => {
+      if (!record) return [];
+      return Object.entries(record)
+        .filter(([, v]) => Number(v) > 0)
+        .map(([type, v]) => ({ type, label: damageTypeLabels[type] ?? type, value: Number(v) }));
+    };
+    const immunities = buildResistList(actor.system.damage?.immunities);
+    const weaknesses = buildResistList(actor.system.damage?.weaknesses);
+
     charPanel = {
       name: actor.name,
       mentor: (isRetainer && mentor) ? { name: mentor.name } : null,
       stamina: {
         label: staminaLabel,
+        value: staminaVal,
+        temporary: staminaTemp,
+        max: staminaMax,
+        editable: isHero,
         fillLeft:    mainFillLeft.toFixed(2),
         fillWidth:   mainFillWidth.toFixed(2),
         fillColor,
@@ -489,14 +514,19 @@ export async function buildCharacterData(actor) {
         value:         rec?.value ?? 0,
         max:           rec?.max ?? 0,
         recoveryValue,
+        editable: isHero,
       },
       surges: surgesCount,
+      surgesEditable: isHero,
       showSurges: surgesCount !== null,
       heroicResource: isHero ? { name: heroicResourceName, value: heroicResourceValue } : null,
       size: sizeDisplay,
       stability,
       movement: { speed: movSpeed, display: movDisplay, disengage: movDisengage },
       skills: isHero ? skillList : null,
+      immunities,
+      weaknesses,
+      hasResistances: immunities.length > 0 || weaknesses.length > 0,
     };
   }
 
@@ -516,7 +546,24 @@ export async function buildCharacterData(actor) {
     });
   }
 
-  return { sections, charPanel, conditions };
+  // Resources panel — embedded heroic resource section from draw-steel-resources-ui
+  let resourcesPanel = null;
+  if (isHero) {
+    const resModule = game.modules.get("draw-steel-resources-ui");
+    if (resModule?.active) {
+      let showPanel = false;
+      try { showPanel = game.settings.get(MODULE_ID, "showResourcesPanel"); } catch { /* setting not yet registered */ }
+      if (showPanel && resModule.api?.buildHeroicTabData) {
+        try {
+          resourcesPanel = await resModule.api.buildHeroicTabData(actor);
+        } catch (err) {
+          console.warn(`${MODULE_ID} | Failed to build resources panel:`, err);
+        }
+      }
+    }
+  }
+
+  return { sections, charPanel, conditions, resourcesPanel };
 }
 
 /* ================================================================
@@ -738,11 +785,18 @@ export async function buildMonsterData(actor) {
   if (game.settings.get(MODULE_ID, "showCharPanel")) {
     const staminaMax = actor.system.stamina.max ?? 0;
     const staminaVal = actor.system.stamina.value ?? 0;
+    const staminaTemp = actor.system.stamina.temporary ?? 0;
     const fillWidth = staminaMax > 0 ? Math.max(0, Math.min(100, (staminaVal / staminaMax) * 100)) : 0;
     const ratio = staminaMax > 0 ? Math.max(0, Math.min(1, staminaVal / staminaMax)) : 0;
     const hue = Math.round(ratio * 120);
     const fillColor = `hsl(${hue}, 75%, 42%)`;
-    const staminaLabel = `${staminaVal} / ${staminaMax}`;
+    const staminaLabel = `${staminaVal} / ${staminaMax}${staminaTemp > 0 ? ` (${staminaTemp})` : ""}`;
+
+    // Temp stamina bar — spans from left edge proportional to totalRange (same as max for NPCs)
+    let tempWidth = null;
+    if (staminaTemp > 0 && staminaMax > 0) {
+      tempWidth = (staminaTemp / staminaMax * 100).toFixed(2);
+    }
 
     const combatSize = actor.system.combat?.size ?? {};
     const sizeVal = combatSize.value ?? 1;
@@ -756,6 +810,24 @@ export async function buildMonsterData(actor) {
     const movDisplay = movTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ") || "Walk";
     const movDisengage = mov.disengage ?? 1;
 
+    const dsCfg = globalThis.ds?.CONFIG;
+    const damageTypeLabels = {
+      all: game.i18n.localize("DRAW_STEEL.Actor.base.FIELDS.damage.immunities.all.label") || "All",
+    };
+    if (dsCfg?.damageTypes) {
+      for (const [type, info] of Object.entries(dsCfg.damageTypes)) {
+        damageTypeLabels[type] = info?.label ?? (type.charAt(0).toUpperCase() + type.slice(1));
+      }
+    }
+    const buildResistList = (record) => {
+      if (!record) return [];
+      return Object.entries(record)
+        .filter(([, v]) => Number(v) > 0)
+        .map(([type, v]) => ({ type, label: damageTypeLabels[type] ?? type, value: Number(v) }));
+    };
+    const immunities = buildResistList(actor.system.damage?.immunities);
+    const weaknesses = buildResistList(actor.system.damage?.weaknesses);
+
     charPanel = {
       name: actor.name,
       stamina: {
@@ -764,8 +836,10 @@ export async function buildMonsterData(actor) {
         fillWidth: fillWidth.toFixed(2),
         fillColor,
         zeroPercent: null,
-        tempLeft: null,
-        tempWidth: null,
+        tempWidth,
+        value: staminaVal,
+        temporary: staminaTemp,
+        editable: true,
       },
       recoveries: null,
       surges: null,
@@ -774,6 +848,9 @@ export async function buildMonsterData(actor) {
       stability,
       movement: { speed: movSpeed, display: movDisplay, disengage: movDisengage },
       skills: null,
+      immunities,
+      weaknesses,
+      hasResistances: immunities.length > 0 || weaknesses.length > 0,
     };
   }
 

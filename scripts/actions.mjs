@@ -97,6 +97,53 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
       break;
     }
 
+    /* ---- Hero token → reroll a test ---- */
+    case "heroTokenRerollTest": {
+      const heroTokens = game.actors?.heroTokens;
+      if (!heroTokens || heroTokens.value < 1) {
+        ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoHeroTokens") || "Not enough hero tokens!");
+        break;
+      }
+      const result = await heroTokens.spendToken("rerollTest", { flavor: actor.name }).catch(() => null);
+      if (result === false) break;
+      // If the system's spendToken doesn't post a chat message for this type, post one manually
+      if (result === undefined || result === null) {
+        const speaker = ChatMessage.getSpeaker({ actor });
+        await ChatMessage.create({
+          user: game.user.id,
+          speaker,
+          content: `<div class="dsresources-chat-card">
+            <div class="dsresources-chat-header"><strong>${speaker.alias}</strong> spent 1 Hero Token</div>
+            <div class="dsresources-chat-method">${game.i18n.localize("DSAHUD.Actions.HeroTokenRerollTest")}: you must use the new roll.</div>
+          </div>`,
+        });
+      }
+      break;
+    }
+
+    /* ---- Hero token → succeed on a failed save ---- */
+    case "heroTokenSucceedSave": {
+      const heroTokens = game.actors?.heroTokens;
+      if (!heroTokens || heroTokens.value < 1) {
+        ui.notifications.warn(game.i18n.localize("DSAHUD.Notify.NoHeroTokens") || "Not enough hero tokens!");
+        break;
+      }
+      const result = await heroTokens.spendToken("succeedSave", { flavor: actor.name }).catch(() => null);
+      if (result === false) break;
+      if (result === undefined || result === null) {
+        const speaker = ChatMessage.getSpeaker({ actor });
+        await ChatMessage.create({
+          user: game.user.id,
+          speaker,
+          content: `<div class="dsresources-chat-card">
+            <div class="dsresources-chat-header"><strong>${speaker.alias}</strong> spent 1 Hero Token</div>
+            <div class="dsresources-chat-method">${game.i18n.localize("DSAHUD.Actions.HeroTokenSucceedSave")}: you succeed on the saving throw.</div>
+          </div>`,
+        });
+      }
+      break;
+    }
+
     /* ---- Damage Surge (1/2/3) ---- */
     case "damageSurge":
     case "damageSurge2":

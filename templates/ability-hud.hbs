@@ -7,7 +7,7 @@
     <span class="dsahud-button-label">{{this.label}}</span>
 
     {{#if this.sections.length}}
-    <div class="dsahud-popup{{#if this.charPanel}} dsahud-popup--char{{else}}{{#if this.conditions}} dsahud-popup--char{{/if}}{{/if}}">
+    <div class="dsahud-popup{{#if this.charPanel}} dsahud-popup--char{{else}}{{#if this.conditions}} dsahud-popup--char{{else}}{{#if this.resourcesPanel}} dsahud-popup--char{{/if}}{{/if}}{{/if}}">
       {{#if this.charPanel}}
       <div class="dsahud-char-panel">
         <div class="dsahud-char-name">{{this.charPanel.name}}</div>
@@ -15,17 +15,36 @@
         <div class="dsahud-char-mentor">Mentor: {{this.charPanel.mentor.name}}</div>
         {{/if}}
 
-        <div class="dsahud-stamina-wrap">
-          <div class="dsahud-stamina-track">
-            <div class="dsahud-stamina-fill" style="left:{{this.charPanel.stamina.fillLeft}}%;width:{{this.charPanel.stamina.fillWidth}}%;background:{{this.charPanel.stamina.fillColor}};"></div>
-            {{#if this.charPanel.stamina.tempWidth}}
-            <div class="dsahud-stamina-temp" style="left:{{this.charPanel.stamina.tempLeft}}%;width:{{this.charPanel.stamina.tempWidth}}%;"></div>
-            {{/if}}
-            {{#if this.charPanel.stamina.zeroPercent}}
-            <div class="dsahud-stamina-zero" style="left:{{this.charPanel.stamina.zeroPercent}}%;"></div>
-            {{/if}}
-            <span class="dsahud-stamina-label">{{this.charPanel.stamina.label}}</span>
+        <div class="dsahud-cp-section dsahud-stamina-section">
+          {{#if this.charPanel.stamina.editable}}
+          <div class="dsahud-cp-title">Stamina</div>
+          {{/if}}
+          <div class="dsahud-stamina-wrap">
+            <div class="dsahud-stamina-track">
+              <div class="dsahud-stamina-fill" style="left:{{this.charPanel.stamina.fillLeft}}%;width:{{this.charPanel.stamina.fillWidth}}%;background:{{this.charPanel.stamina.fillColor}};"></div>
+              {{#if this.charPanel.stamina.tempWidth}}
+              <div class="dsahud-stamina-temp" style="left:0;width:{{this.charPanel.stamina.tempWidth}}%;"></div>
+              {{/if}}
+              {{#if this.charPanel.stamina.zeroPercent}}
+              <div class="dsahud-stamina-zero" style="left:{{this.charPanel.stamina.zeroPercent}}%;"></div>
+              {{/if}}
+              <span class="dsahud-stamina-label">{{this.charPanel.stamina.label}}</span>
+            </div>
           </div>
+          {{#if this.charPanel.stamina.editable}}
+          <div class="dsahud-stats-grid dsahud-stats-grid--2 dsahud-stamina-fields">
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Current</span>
+              <input type="number" class="dsahud-cp-input dsahud-cp-input--stat" data-cp-edit="staminaValue"
+                value="{{this.charPanel.stamina.value}}" step="1" />
+            </div>
+            <div class="dsahud-stat-cell">
+              <span class="dsahud-stat-lbl">Temp</span>
+              <input type="number" class="dsahud-cp-input dsahud-cp-input--stat" data-cp-edit="staminaTemp"
+                value="{{this.charPanel.stamina.temporary}}" min="0" step="1" />
+            </div>
+          </div>
+          {{/if}}
         </div>
 
         {{#if this.charPanel.recoveries}}
@@ -33,22 +52,37 @@
           <div class="dsahud-cp-title">Resources</div>
           <div class="dsahud-cp-row">
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-heart-pulse dsahud-cp-icon"></i> Recoveries</span>
-            <span class="dsahud-cp-val">{{this.charPanel.recoveries.value}}/{{this.charPanel.recoveries.max}} (+{{this.charPanel.recoveries.recoveryValue}})</span>
+            <span class="dsahud-cp-val">
+              {{#if this.charPanel.recoveries.editable}}
+              <input type="number" class="dsahud-cp-input" data-cp-edit="recoveries"
+                value="{{this.charPanel.recoveries.value}}" min="0" max="{{this.charPanel.recoveries.max}}" step="1" />
+              {{else}}{{this.charPanel.recoveries.value}}{{/if}}/{{this.charPanel.recoveries.max}}
+              (+{{this.charPanel.recoveries.recoveryValue}})
+            </span>
           </div>
           {{#if this.charPanel.showSurges}}
           <div class="dsahud-cp-row">
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-bolt dsahud-cp-icon"></i> Surges</span>
-            <span class="dsahud-cp-val">{{this.charPanel.surges}}</span>
+            <span class="dsahud-cp-val">
+              {{#if this.charPanel.surgesEditable}}
+              <input type="number" class="dsahud-cp-input" data-cp-edit="surges"
+                value="{{this.charPanel.surges}}" min="0" step="1" />
+              {{else}}{{this.charPanel.surges}}{{/if}}
+            </span>
           </div>
           {{/if}}
           {{#if this.charPanel.heroicResource}}
           <div class="dsahud-cp-row">
             <span class="dsahud-cp-lbl"><i class="fa-solid fa-fire dsahud-cp-icon"></i> {{this.charPanel.heroicResource.name}}</span>
-            <span class="dsahud-cp-val">{{this.charPanel.heroicResource.value}}</span>
+            <span class="dsahud-cp-val">
+              <input type="number" class="dsahud-cp-input" data-cp-edit="heroicResource"
+                value="{{this.charPanel.heroicResource.value}}" step="1" />
+            </span>
           </div>
           {{/if}}
         </div>
         {{/if}}
+
 
         <div class="dsahud-cp-section">
           <div class="dsahud-cp-title">Size &amp; Movement</div>
@@ -72,6 +106,27 @@
           </div>
         </div>
 
+        {{#if this.charPanel.immunities.length}}
+        <div class="dsahud-cp-section">
+          <div class="dsahud-cp-title">Immunities</div>
+          <div class="dsahud-resist-pills">
+            {{#each this.charPanel.immunities}}
+            <span class="dsahud-resist-pill dsahud-resist-pill--immunity">{{this.label}} {{this.value}}</span>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+        {{#if this.charPanel.weaknesses.length}}
+        <div class="dsahud-cp-section">
+          <div class="dsahud-cp-title">Weaknesses</div>
+          <div class="dsahud-resist-pills">
+            {{#each this.charPanel.weaknesses}}
+            <span class="dsahud-resist-pill dsahud-resist-pill--weakness">{{this.label}} {{this.value}}</span>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+
         {{#if this.charPanel.skills.length}}
         <div class="dsahud-cp-section">
           <div class="dsahud-cp-title">Skills</div>
@@ -82,6 +137,200 @@
           </div>
         </div>
         {{/if}}
+      </div>
+      {{/if}}
+      {{#if this.resourcesPanel}}
+      <div class="dsahud-resources-panel">
+        <div class="dsahud-cp-title dsahud-resources-title">
+          <span>{{this.resourcesPanel.resourceName}}</span>
+          <div class="dsahud-resources-counter">
+            <button class="dsahud-res-adj" data-resource-action="decrement"><i class="fa-solid fa-minus"></i></button>
+            <span class="dsahud-res-value">{{this.resourcesPanel.heroicValue}}</span>
+            <button class="dsahud-res-adj" data-resource-action="increment"><i class="fa-solid fa-plus"></i></button>
+          </div>
+        </div>
+        <div class="dsahud-resources-content">
+          {{#if this.resourcesPanel.noClassData}}
+          <div class="dsahud-resources-empty"><i class="fa-solid fa-circle-info"></i> No class data</div>
+          {{else}}
+
+          {{!-- ── Class Feature (Mantle / Strain) ────────────────────────── --}}
+          {{#if this.resourcesPanel.classFeature}}
+          <div class="dsahud-resources-section">
+            <div class="dsahud-res-cf dsahud-res-cf--{{this.resourcesPanel.classFeature.activeColor}} {{#if this.resourcesPanel.classFeature.isActive}}is-active{{else}}is-inactive{{/if}}">
+              <div class="dsahud-res-cf-header">
+                {{#if this.resourcesPanel.classFeature.isActive}}
+                <span class="dsahud-res-cf-status">{{this.resourcesPanel.classFeature.label}}</span>
+                {{else}}
+                <span class="dsahud-res-cf-status dsahud-res-cf-status--inactive">
+                  {{#if this.resourcesPanel.classFeature.inactiveLabel}}{{this.resourcesPanel.classFeature.inactiveLabel}}{{else}}{{this.resourcesPanel.classFeature.label}}: Inactive{{/if}}
+                </span>
+                {{/if}}
+                {{#if (eq this.resourcesPanel.classFeature.type "strain")}}
+                <button class="dsahud-res-btn dsahud-res-btn--strain"
+                  data-resource-action="strainDamage"
+                  {{#unless this.resourcesPanel.classFeature.isActive}}disabled{{/unless}}>
+                  <i class="fa-solid fa-heart-crack"></i> Strain Damage
+                </button>
+                {{/if}}
+              </div>
+              {{#if this.resourcesPanel.classFeature.description}}
+              <div class="dsahud-res-cf-desc">{{{this.resourcesPanel.classFeature.description}}}</div>
+              {{/if}}
+            </div>
+          </div>
+          {{/if}}
+
+          {{!-- ── Gains ──────────────────────────────────────────────────── --}}
+          {{#if this.resourcesPanel.gains.length}}
+          <div class="dsahud-resources-section">
+            <div class="dsahud-resources-section-title">{{localize "DSRESOURCES.Section.Gain"}}</div>
+            {{#each this.resourcesPanel.gains}}
+            {{#if this.isGroupHeader}}
+            <div class="dsahud-res-entry dsahud-res-entry--divider">
+              <span class="dsahud-res-entry-desc dsahud-res-entry-desc--header">{{{this.description}}}</span>
+              {{#each this.children}}
+              <div class="dsahud-res-entry dsahud-res-entry--child">
+                <span class="dsahud-res-entry-desc">{{{this.description}}}</span>
+                <div class="dsahud-res-actions">
+                  {{#if this.isUsed}}
+                  <button class="dsahud-res-undo" data-resource-action="undo" data-track-key="{{this.trackKey}}" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                  {{/if}}
+                  <button class="dsahud-res-btn dsahud-res-btn--gain"
+                    data-resource-action="gain" data-gain-id="{{this.id}}"
+                    {{#if this.isUsed}}disabled{{/if}}>{{this.label}}</button>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{else}}
+            <div class="dsahud-res-entry dsahud-res-entry--divider">
+              <span class="dsahud-res-entry-desc">{{{this.description}}}</span>
+              <div class="dsahud-res-actions">
+                {{#if this.isDescriptionOnly}}
+                {{!-- description only --}}
+                {{else if this.isPray}}
+                <button class="dsahud-res-btn dsahud-res-btn--pray"
+                  data-resource-action="pray" data-gain-id="{{this.id}}">{{this.label}}</button>
+                {{else if this.isMindRecovery}}
+                <button class="dsahud-res-btn dsahud-res-btn--mind"
+                  data-resource-action="mindRecovery" data-gain-id="{{this.id}}">{{this.label}}</button>
+                {{else}}
+                {{#if this.isUsed}}
+                <button class="dsahud-res-undo" data-resource-action="undo" data-track-key="{{this.trackKey}}" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                {{/if}}
+                {{#if this.isAutomated}}
+                <button class="dsahud-res-btn dsahud-res-btn--gain" disabled title="Handled automatically by the system">{{this.label}}</button>
+                {{else}}
+                <button class="dsahud-res-btn dsahud-res-btn--gain"
+                  data-resource-action="gain" data-gain-id="{{this.id}}"
+                  {{#if this.isUsed}}disabled{{/if}}>{{this.label}}</button>
+                {{/if}}
+                {{/if}}
+              </div>
+            </div>
+            {{/if}}
+            {{/each}}
+          </div>
+          {{/if}}
+
+          {{!-- ── Spends ──────────────────────────────────────────────────── --}}
+          {{#if this.resourcesPanel.spends.length}}
+          <div class="dsahud-resources-section">
+            <div class="dsahud-resources-section-title">{{localize "DSRESOURCES.Section.Spend"}}</div>
+            {{#each this.resourcesPanel.spends}}
+            {{#if this.isGroupHeader}}
+            <div class="dsahud-res-entry dsahud-res-entry--divider">
+              <span class="dsahud-res-entry-desc dsahud-res-entry-desc--header">{{{this.description}}}</span>
+              {{#each this.children}}
+              <div class="dsahud-res-entry dsahud-res-entry--child">
+                <span class="dsahud-res-entry-desc">{{{this.description}}}</span>
+                <div class="dsahud-res-actions">
+                  {{#if this.isUsed}}
+                  <button class="dsahud-res-undo" data-resource-action="undo" data-track-key="{{this.trackKey}}" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                  {{/if}}
+                  <button class="dsahud-res-btn dsahud-res-btn--spend"
+                    data-resource-action="spend" data-spend-id="{{this.id}}"
+                    {{#if this.isUsed}}disabled{{/if}}>{{this.label}}</button>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{else if this.isDescriptionOnly}}
+            <div class="dsahud-res-entry dsahud-res-entry--divider">
+              <span class="dsahud-res-entry-desc">{{{this.description}}}</span>
+            </div>
+            {{else}}
+            <div class="dsahud-res-entry dsahud-res-entry--divider">
+              <span class="dsahud-res-entry-desc">{{{this.description}}}</span>
+              <div class="dsahud-res-actions">
+                {{#if this.isUsed}}
+                <button class="dsahud-res-undo" data-resource-action="undo" data-track-key="{{this.trackKey}}" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                {{/if}}
+                {{#if this.isSpendX}}
+                <div class="dsahud-res-spendx">
+                  <button class="dsahud-res-adj" data-resource-action="adjustSpendX" data-spend-id="{{this.id}}" data-direction="-1" {{#if this.isUsed}}disabled{{/if}}><i class="fa-solid fa-minus"></i></button>
+                  <span class="dsahud-res-spendx-value">{{this.spendXValue}}</span>
+                  <button class="dsahud-res-adj" data-resource-action="adjustSpendX" data-spend-id="{{this.id}}" data-direction="1" {{#if this.isUsed}}disabled{{/if}}><i class="fa-solid fa-plus"></i></button>
+                  <button class="dsahud-res-btn dsahud-res-btn--spend"
+                    data-resource-action="confirmSpendX" data-spend-id="{{this.id}}"
+                    {{#if this.isUsed}}disabled{{/if}}>{{this.label}}</button>
+                </div>
+                {{else}}
+                <button class="dsahud-res-btn {{#if this.grantsSurge}}dsahud-res-btn--surge{{else}}dsahud-res-btn--spend{{/if}}"
+                  data-resource-action="spend" data-spend-id="{{this.id}}"
+                  {{#if this.isUsed}}disabled{{/if}}>{{this.label}}</button>
+                {{/if}}
+              </div>
+            </div>
+            {{/if}}
+            {{/each}}
+          </div>
+          {{/if}}
+
+          {{!-- ── Growth Tables (e.g. Growing Ferocity) ──────────────────── --}}
+          {{#each this.resourcesPanel.growthTables}}
+          <div class="dsahud-resources-section">
+            <div class="dsahud-resources-section-title">{{this.label}}</div>
+            {{#if this.description}}
+            <div class="dsahud-res-growth-description">{{{this.description}}}</div>
+            {{/if}}
+            <table class="dsahud-growth-table">
+              <thead>
+                <tr>
+                  <th class="dsahud-growth-th-threshold"><i class="fa-solid fa-bolt"></i></th>
+                  <th>Effect</th>
+                  <th class="dsahud-growth-th-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each this.rows}}
+                <tr class="{{#if this.isActive}}dsahud-growth-active{{/if}}">
+                  <td class="dsahud-growth-threshold">{{this.threshold}}</td>
+                  <td class="dsahud-growth-effect">{{{this.description}}}</td>
+                  <td class="dsahud-growth-action">
+                    {{#if this.showSurgeButton}}
+                    {{#if this.isUsed}}
+                    <button class="dsahud-res-undo" data-resource-action="undo" data-track-key="{{this.trackKey}}" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                    {{/if}}
+                    <button class="dsahud-res-btn dsahud-res-btn--surge dsahud-growth-surge-btn"
+                      data-resource-action="growthSurge"
+                      data-table-label="{{../label}}"
+                      data-surge-amount="{{this.surgeButtonAmount}}"
+                      data-track-key="{{this.trackKey}}"
+                      title="Gain {{this.surgeButtonAmount}} surge(s)"
+                      {{#if this.isUsed}}disabled{{/if}}>+{{this.surgeButtonAmount}}</button>
+                    {{/if}}
+                  </td>
+                </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+          {{/each}}
+
+          {{/if}}{{!-- end {{else}} for noClassData --}}
+        </div>
       </div>
       {{/if}}
       <div class="dsahud-tools-col">

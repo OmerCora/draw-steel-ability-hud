@@ -50,8 +50,11 @@
   "DSAHUD.Actions.DamageSurge2": "Damage Surge (2)",
   "DSAHUD.Actions.DamageSurge3": "Damage Surge (3)",
   "DSAHUD.Actions.PotencySurge": "Potency Surge (2)",
+  "DSAHUD.Actions.HeroTokenRerollTest": "Reroll a Test",
+  "DSAHUD.Actions.HeroTokenSucceedSave": "Succeed on a Failed Save",
 
   "DSAHUD.Notify.NoSurges": "Not enough surges!",
+  "DSAHUD.Notify.NoHeroTokens": "Not enough hero tokens!",
 
   "DSAHUD.Settings.ShowFavoritesButton.Name": "Show Favorites Button",
   "DSAHUD.Settings.ShowFavoritesButton.Hint": "Add a Favorites button (shown first) that lists all abilities, features, and items marked as favorites in Draw Steel Plus. Requires Draw Steel Plus to be active.",
@@ -65,5 +68,7 @@
   "DSAHUD.Settings.ShowCharPanel.Name": "Show Character Overview Panel",
   "DSAHUD.Settings.ShowCharPanel.Hint": "Show the character overview column (stamina bar, size, movement, skills) alongside the ability list. For heroes this appears in the Character popup; for monsters it appears in the Monster popup.",
   "DSAHUD.Settings.ShowConditionsPanel.Name": "Show Conditions Panel",
-  "DSAHUD.Settings.ShowConditionsPanel.Hint": "Show a status conditions column in the Character popup for toggling conditions directly from the HUD."
+  "DSAHUD.Settings.ShowConditionsPanel.Hint": "Show a status conditions column in the Character popup for toggling conditions directly from the HUD.",
+  "DSAHUD.Settings.ShowResourcesPanel.Name": "Embed Resources Panel",
+  "DSAHUD.Settings.ShowResourcesPanel.Hint": "Embed the heroic resource panel (from Draw Steel Resources UI) in the Character popup, between the character overview and ability buttons. Requires Draw Steel Resources UI to be active."
 }

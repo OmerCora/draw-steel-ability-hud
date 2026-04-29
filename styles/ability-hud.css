@@ -177,8 +177,8 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  max-width: 620px;
-  max-height: 72vh;
+  max-width: 920px;
+  max-height: calc(72vh - 200px);
   overflow: hidden;
   padding: 0;
 }
@@ -234,6 +234,436 @@
 .dsahud-conditions-list::-webkit-scrollbar { width: 4px; }
 .dsahud-conditions-list::-webkit-scrollbar-track { background: transparent; }
 .dsahud-conditions-list::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 2px; }
+
+/* ================================================================
+ *  Embedded Resources Panel (draw-steel-resources-ui integration)
+ * ================================================================ */
+
+.dsahud-resources-panel {
+  width: 330px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid rgba(128, 128, 128, 0.22);
+}
+
+.dsahud-resources-title {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 4px;
+  gap: 6px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  /* Override opacity from .dsahud-cp-title so the name is legible */
+  opacity: 1 !important;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(220, 210, 190, 0.9);
+}
+
+/* Counter row (+, value, -) */
+.dsahud-resources-counter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+
+.dsahud-res-adj {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: rgba(60, 60, 60, 0.6);
+  color: inherit;
+  cursor: pointer;
+  font-size: 9px;
+  padding: 0;
+  transition: background 0.1s;
+}
+
+.dsahud-res-adj:hover {
+  background: rgba(100, 100, 100, 0.7);
+  border-color: rgba(180, 180, 180, 0.5);
+}
+
+.dsahud-res-value {
+  min-width: 24px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(220, 210, 190, 0.95);
+  padding: 0 2px;
+}
+
+/* Scrollable content area */
+.dsahud-resources-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dsahud-resources-content::-webkit-scrollbar { width: 4px; }
+.dsahud-resources-content::-webkit-scrollbar-track { background: transparent; }
+.dsahud-resources-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius: 2px; }
+
+.dsahud-resources-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dsahud-resources-section-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  opacity: 0.45;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  margin-bottom: 1px;
+}
+
+.dsahud-resources-empty {
+  font-size: 11px;
+  opacity: 0.5;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* Entry rows — stacked: description first, then action row below */
+.dsahud-res-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  padding: 5px 0;
+}
+
+/* Divider between sibling entries via CSS instead of extra HR elements */
+.dsahud-res-entry--divider + .dsahud-res-entry--divider {
+  border-top: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.dsahud-res-entry-desc--header {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.dsahud-res-entry--child {
+  padding-left: 8px;
+}
+
+.dsahud-res-entry-desc {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  color: rgba(200, 195, 185, 0.85);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+}
+
+.dsahud-res-entry-desc * {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.dsahud-res-entry-desc p {
+  margin: 0 0 2px 0;
+}
+
+/* Action row: undo + main button(s), right-aligned */
+.dsahud-res-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* Undo button */
+.dsahud-res-undo {
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  cursor: pointer;
+  font-size: 10px;
+  opacity: 0.65;
+  color: inherit;
+  background: transparent;
+  transition: opacity 0.1s;
+}
+
+.dsahud-res-undo:hover {
+  opacity: 1;
+}
+
+.dsahud-res-btn {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s;
+  color: inherit;
+}
+
+.dsahud-res-btn--gain {
+  background: rgba(50, 90, 50, 0.5);
+  border-color: rgba(80, 140, 80, 0.45);
+}
+
+.dsahud-res-btn--gain:hover:not(:disabled) {
+  background: rgba(60, 110, 60, 0.7);
+  border-color: rgba(100, 160, 100, 0.6);
+}
+
+.dsahud-res-btn--spend {
+  background: rgba(90, 50, 50, 0.5);
+  border-color: rgba(140, 80, 80, 0.45);
+}
+
+.dsahud-res-btn--spend:hover:not(:disabled) {
+  background: rgba(110, 60, 60, 0.7);
+  border-color: rgba(160, 100, 100, 0.6);
+}
+
+.dsahud-res-btn--surge {
+  background: rgba(80, 70, 50, 0.5);
+  border-color: rgba(140, 120, 70, 0.45);
+}
+
+.dsahud-res-btn--surge:hover:not(:disabled) {
+  background: rgba(100, 90, 60, 0.7);
+  border-color: rgba(160, 140, 90, 0.6);
+}
+
+/* Talent: Mind Recovery (purple) */
+.dsahud-res-btn--mind {
+  background: rgba(80, 50, 100, 0.5);
+  border-color: rgba(140, 80, 180, 0.45);
+}
+
+.dsahud-res-btn--mind:hover:not(:disabled) {
+  background: rgba(100, 60, 130, 0.7);
+  border-color: rgba(160, 100, 200, 0.6);
+}
+
+/* Talent: Strain Damage (deep red) */
+.dsahud-res-btn--strain {
+  background: rgba(120, 40, 40, 0.6);
+  border-color: rgba(180, 70, 70, 0.5);
+}
+
+.dsahud-res-btn--strain:hover:not(:disabled) {
+  background: rgba(150, 50, 50, 0.75);
+  border-color: rgba(200, 90, 90, 0.65);
+}
+
+/* Conduit: Pray (warm gold) */
+.dsahud-res-btn--pray {
+  background: rgba(120, 90, 30, 0.55);
+  border-color: rgba(180, 140, 60, 0.5);
+}
+
+.dsahud-res-btn--pray:hover:not(:disabled) {
+  background: rgba(150, 110, 40, 0.7);
+  border-color: rgba(200, 160, 80, 0.65);
+}
+
+/* Class feature panel (Mantle / Strain) */
+.dsahud-res-cf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.dsahud-res-cf.is-inactive {
+  opacity: 0.55;
+}
+
+.dsahud-res-cf--green.is-active {
+  border-color: rgba(80, 160, 80, 0.55);
+  background: rgba(40, 90, 40, 0.22);
+}
+
+.dsahud-res-cf--red.is-active {
+  border-color: rgba(180, 70, 70, 0.55);
+  background: rgba(100, 30, 30, 0.22);
+}
+
+.dsahud-res-cf--gold.is-active {
+  border-color: rgba(180, 140, 60, 0.55);
+  background: rgba(90, 70, 25, 0.22);
+}
+
+.dsahud-res-cf-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.dsahud-res-cf-status {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.dsahud-res-cf-status--inactive {
+  opacity: 0.7;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.dsahud-res-cf-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+
+/* Growth tables */
+.dsahud-res-growth-description {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.85;
+  margin-bottom: 4px;
+  font-style: italic;
+  padding: 2px 0;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.dsahud-growth-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.dsahud-growth-table th,
+.dsahud-growth-table td {
+  padding: 3px 5px;
+  text-align: left;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* threshold column — must beat the td text-align:left above */
+.dsahud-growth-table td.dsahud-growth-threshold {
+  text-align: center;
+}
+
+.dsahud-growth-table th {
+  font-weight: 600;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.55;
+  border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+
+.dsahud-growth-th-threshold {
+  width: 44px;
+  text-align: center !important;
+}
+
+.dsahud-growth-th-action {
+  width: 44px;
+}
+
+.dsahud-growth-threshold {
+  width: 44px;
+  font-weight: 700;
+  color: rgba(180, 180, 180, 0.85);
+}
+
+.dsahud-growth-effect {
+  line-height: 1.35;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.dsahud-growth-action {
+  width: 44px;
+  text-align: center;
+  white-space: nowrap;
+  padding: 2px 4px;
+}
+
+.dsahud-growth-action .dsahud-res-btn,
+.dsahud-growth-action .dsahud-res-undo {
+  display: inline-flex;
+  margin: 0;
+}
+
+.dsahud-growth-active {
+  background: rgba(74, 222, 128, 0.10);
+  box-shadow: inset 3px 0 0 hsl(120, 60%, 55%);
+}
+
+.dsahud-growth-active .dsahud-growth-threshold {
+  color: hsl(120, 60%, 55%);
+  text-shadow: 0 0 4px rgba(80, 200, 80, 0.35);
+}
+
+.dsahud-growth-surge-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  min-width: 0;
+}
+
+.dsahud-res-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* SpendX inline row */
+.dsahud-res-spendx {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+
+.dsahud-res-spendx-value {
+  min-width: 18px;
+  text-align: center;
+  font-size: 10.5px;
+}
 
 .dsahud-condition-btn {
   display: flex;
@@ -320,12 +750,12 @@
 
 /* ---- Stamina bar ---- */
 .dsahud-stamina-wrap {
-  padding: 2px 0 6px;
+  padding: 2px 0 2px;
 }
 
 .dsahud-stamina-track {
   position: relative;
-  height: 14px;
+  height: 18px;
   border-radius: 3px;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -340,15 +770,16 @@
   transition: width 0.2s, left 0.2s;
 }
 
-/* Temp stamina: tinier blue bar sticking above the main bar */
+/* Temp stamina: thin blue bar overlaid on top edge of main bar */
 .dsahud-stamina-temp {
   position: absolute;
-  height: 8px;
-  top: -7px;
+  height: 3px;
+  top: 0;
   background: #4499ee;
-  border-radius: 2px;
+  border-radius: 2px 2px 0 0;
   opacity: 0.9;
   box-shadow: 0 0 4px rgba(68, 153, 238, 0.6);
+  z-index: 1;
 }
 
 /* Zero marker */
@@ -432,7 +863,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4px 6px;
+  padding: 0px 6px;
   border-radius: 4px;
   background: rgba(40, 40, 40, 0.55);
   border: 1px solid rgba(128, 128, 128, 0.15);
@@ -756,4 +1187,96 @@
 #dsahud-generic-abilities-config th:first-child,
 #dsahud-generic-abilities-config td:first-child {
   text-align: left;
+}
+
+/* ================================================================
+ *  Editable inputs (recoveries / surges / heroic resource / stamina)
+ * ================================================================ */
+.dsahud-cp-input {
+  width: 36px;
+  height: 16px;
+  line-height: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  border-radius: 3px;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 2px;
+  box-sizing: border-box;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.dsahud-cp-input::-webkit-outer-spin-button,
+.dsahud-cp-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dsahud-cp-input:focus {
+  outline: none;
+  border-color: rgba(180, 160, 90, 0.7);
+  background: rgba(0, 0, 0, 0.5);
+}
+.dsahud-cp-input--stat {
+  width: 100%;
+  height: 16px;
+  line-height: 14px;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.dsahud-stats-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.dsahud-stamina-section { gap: 4px; }
+.dsahud-stamina-fields { margin-top: 0; }
+.dsahud-stamina-fields .dsahud-stat-cell { padding-bottom: 2px; }
+
+/* ================================================================
+ *  Resistance pills (immunities / weaknesses)
+ * ================================================================ */
+.dsahud-resist-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.dsahud-resist-row:last-child { margin-bottom: 0; }
+
+.dsahud-resist-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.55;
+  font-weight: 600;
+}
+
+.dsahud-resist-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.dsahud-resist-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: rgba(128, 128, 128, 0.2);
+  color: inherit;
+}
+
+.dsahud-resist-pill--immunity {
+  background: rgba(80, 130, 180, 0.25);
+  border-color: rgba(120, 170, 220, 0.5);
+  color: hsl(210, 70%, 75%);
+}
+
+.dsahud-resist-pill--weakness {
+  background: rgba(180, 80, 80, 0.25);
+  border-color: rgba(220, 110, 110, 0.5);
+  color: hsl(0, 70%, 75%);
 }

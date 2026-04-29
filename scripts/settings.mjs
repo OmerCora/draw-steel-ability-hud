@@ -43,6 +43,20 @@ export function registerSettings() {
   });
 
   /**
+   * Embed Resources Panel — embeds the heroic resource panel from draw-steel-resources-ui
+   * into the Character popup. Only shown in settings when that module is active.
+   */
+  game.settings.register(MODULE_ID, "showResourcesPanel", {
+    name: game.i18n.localize("DSAHUD.Settings.ShowResourcesPanel.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.ShowResourcesPanel.Hint"),
+    scope: "client",
+    config: game.modules.get("draw-steel-resources-ui")?.active ?? false,
+    type: Boolean,
+    default: true,
+    onChange: () => {},
+  });
+
+  /**
    * Show Favorites Button — adds a Favorites button (first) when Draw Steel Plus is active.
    * Only registered/shown when DS+ is active.
    */

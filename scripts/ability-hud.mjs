@@ -217,6 +217,126 @@ export class AbilityHud extends Application {
       await handleAction(actor, "toggleCondition", conditionId, {});
       await this.render(false);
     });
+
+    // Resource panel buttons (draw-steel-resources-ui cross-module)
+    // Trap ALL clicks/mousedowns inside the resources panel so the character popup
+    // stays open even when the user clicks on description text, enriched links,
+    // or anywhere not bound to a specific action.
+    html.find('.dsahud-resources-panel').on('mousedown click', (ev) => {
+      ev.stopPropagation();
+      this._keepCharOpen = true;
+      this.#cancelClose();
+    });
+
+    // Clear the sticky flag when the mouse leaves the popup entirely
+    // (so normal hover-to-close behavior resumes once user moves away).
+    html.find('.dsahud-button[data-button-id="character"] .dsahud-popup').on('mouseleave', () => {
+      this._keepCharOpen = false;
+    });
+
+    html.find("[data-resource-action]").on("click", async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const resModule = game.modules.get("draw-steel-resources-ui");
+      if (!resModule?.api) return;
+      const actor = this.#getActor();
+      if (!actor) return;
+      const action = ev.currentTarget.dataset.resourceAction;
+      const api = resModule.api;
+
+      // Mark popup sticky so the upcoming re-render keeps it open.
+      this._keepCharOpen = true;
+
+      if (action === "increment") {
+        await api.adjustHeroicResource(actor, 1);
+        await this.render(false);
+      } else if (action === "decrement") {
+        await api.adjustHeroicResource(actor, -1);
+        await this.render(false);
+      } else if (action === "gain") {
+        const gainId = ev.currentTarget.dataset.gainId;
+        if (!gainId) return;
+        await api.executeGainHeroic(actor, gainId);
+        await this.render(false);
+      } else if (action === "spend") {
+        const spendId = ev.currentTarget.dataset.spendId;
+        if (!spendId) return;
+        await api.executeSpendHeroic(actor, spendId);
+        await this.render(false);
+      } else if (action === "confirmSpendX") {
+        const spendId = ev.currentTarget.dataset.spendId;
+        if (!spendId) return;
+        const row = ev.currentTarget.closest(".dsahud-res-spendx");
+        const valueSpan = row?.querySelector(".dsahud-res-spendx-value");
+        const amount = parseInt(valueSpan?.textContent ?? "1", 10) || 1;
+        await api.executeConfirmSpendX(actor, spendId, amount);
+        await this.render(false);
+      } else if (action === "adjustSpendX") {
+        // Adjust inline spendX counter without re-render — just bump the value in the DOM
+        const spendId = ev.currentTarget.dataset.spendId;
+        const direction = Number(ev.currentTarget.dataset.direction) || 0;
+        if (!spendId || !direction) return;
+        const row = ev.currentTarget.closest(".dsahud-res-spendx");
+        const valueSpan = row?.querySelector(".dsahud-res-spendx-value");
+        if (!valueSpan) return;
+        const current = parseInt(valueSpan.textContent ?? "1", 10) || 1;
+        const data = await api.buildHeroicTabData(actor);
+        const entry = data?.spends?.find(s => s.id === spendId);
+        if (!entry) return;
+        const newVal = Math.max(entry.spendXMin ?? 1, Math.min(entry.spendXMax ?? current, current + direction * (entry.spendXStep ?? 1)));
+        valueSpan.textContent = String(newVal);
+      } else if (action === "undo") {
+        const trackKey = ev.currentTarget.dataset.trackKey;
+        if (!trackKey) return;
+        await api.undoEntry(actor, trackKey);
+        await this.render(false);
+      } else if (action === "mindRecovery") {
+        await api.executeMindRecovery(actor);
+        await this.render(false);
+      } else if (action === "pray") {
+        await api.executePray(actor);
+        await this.render(false);
+      } else if (action === "strainDamage") {
+        await api.executeStrainDamage(actor);
+        await this.render(false);
+      } else if (action === "growthSurge") {
+        const ds = ev.currentTarget.dataset;
+        const amount = Number(ds.surgeAmount) || 1;
+        const tableLabel = ds.tableLabel ?? "";
+        const trackKey = ds.trackKey || null;
+        await api.executeGainGrowthSurge(actor, amount, tableLabel, trackKey);
+        await this.render(false);
+      }
+    });
+
+    // Editable character-panel inputs (recoveries / surges / heroic resource / stamina)
+    html.find('.dsahud-char-panel').on('mousedown click', (ev) => {
+      ev.stopPropagation();
+      this._keepCharOpen = true;
+      this.#cancelClose();
+    });
+    html.find('.dsahud-cp-input').on('click', (ev) => ev.stopPropagation());
+    html.find('.dsahud-cp-input').on('change', async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const actor = this.#getActor();
+      if (!actor) return;
+      const field = ev.currentTarget.dataset.cpEdit;
+      const raw = ev.currentTarget.value;
+      const val = Number.isFinite(parseInt(raw, 10)) ? parseInt(raw, 10) : 0;
+      this._keepCharOpen = true;
+      const updates = {};
+      switch (field) {
+        case "recoveries":     updates["system.recoveries.value"]   = Math.max(0, val); break;
+        case "surges":         updates["system.hero.surges"]        = Math.max(0, val); break;
+        case "heroicResource": updates["system.hero.primary.value"] = val; break;
+        case "staminaValue":   updates["system.stamina.value"]      = val; break;
+        case "staminaTemp":    updates["system.stamina.temporary"]  = Math.max(0, val); break;
+        default: return;
+      }
+      await actor.update(updates);
+      await this.render(false);
+    });
   }
 
   /** Fallback tooltip used when DS Plus is not active — mirrors DS Plus's item-tooltip structure. */
@@ -461,9 +581,73 @@ export class AbilityHud extends Application {
 
   /** After render, size and align the bar to the Foundry hotbar. */
   async _render(force, options) {
-    await super._render(force, options);
-    requestAnimationFrame(() => this.#alignToHotbar());
+    // Preserve scroll positions of internal panels across re-renders triggered
+    // by clicks (gain/spend/etc. would otherwise reset to top).
+    const scrollSelectors = [".dsahud-resources-content", ".dsahud-char-panel"];
+    const prevScrolls = {};
+    for (const sel of scrollSelectors) {
+      const el = this._element?.find(sel)?.[0];
+      if (el) prevScrolls[sel] = el.scrollTop;
+    }
+    // Capture the previous bar position so the new (replaced) element doesn't
+    // momentarily render at (0,0) before #alignToHotbar fires — that's what
+    // caused the entire HUD to "jump left" on the first click.
+    const oldEl = this._element?.[0];
+    const prevPos = oldEl ? {
+      left:   oldEl.style.left,
+      width:  oldEl.style.width,
+      bottom: oldEl.style.bottom,
+    } : null;
+    const oldBar = oldEl?.querySelector(".dsahud-bar");
+    const prevBarWrap = oldBar?.style.flexWrap || "";
 
+    await super._render(force, options);
+
+    // Re-apply any prior inline position to the freshly-replaced element BEFORE
+    // the browser paints, so there is no visible jump.
+    const newEl = this._element?.[0];
+    if (newEl && prevPos) {
+      if (prevPos.left)   newEl.style.left   = prevPos.left;
+      if (prevPos.width)  newEl.style.width  = prevPos.width;
+      if (prevPos.bottom) newEl.style.bottom = prevPos.bottom;
+      const newBar = newEl.querySelector(".dsahud-bar");
+      if (newBar && prevBarWrap) newBar.style.flexWrap = prevBarWrap;
+    }
+
+    // Sticky character popup: any prior click in the resources/char panel sets
+    // this flag so subsequent re-renders don't dismiss the popup. Re-activate
+    // BEFORE restoring scroll so the panel is display:block (otherwise its
+    // scrollHeight is 0 and scrollTop gets clamped back to 0).
+    if (this._keepCharOpen) {
+      this.#cancelClose();
+      this._element?.find('.dsahud-popup.active').removeClass('active');
+      this._element?.find('.dsahud-button[data-button-id="character"] .dsahud-popup').addClass('active');
+    }
+
+    // Restore scroll positions. Apply synchronously and again on the next two
+    // animation frames so it sticks after layout / async content enrichment.
+    const restoreScrolls = () => {
+      for (const [sel, top] of Object.entries(prevScrolls)) {
+        const el = this._element?.find(sel)?.[0];
+        if (el && top) el.scrollTop = top;
+      }
+    };
+    restoreScrolls();
+    requestAnimationFrame(() => { restoreScrolls(); requestAnimationFrame(restoreScrolls); });
+
+    // Only realign on the FIRST render (or when forced). Subsequent re-renders
+    // triggered by data updates (e.g. resource gain/spend) must NOT recompute
+    // bar position — even tiny font/icon-loading width differences cause the
+    // entire HUD to visibly jump left/right when the user clicks something.
+    // The window-resize, MutationObserver and ResizeObserver below handle
+    // legitimate hotbar movement (dice tray, chat tray, viewport resize).
+    const needsInitialAlign = force || !this._aligned;
+    if (needsInitialAlign) {
+      requestAnimationFrame(() => {
+        this.#alignToHotbar();
+        this._aligned = true;
+      });
+    }
     // Register resize listener once
     if (!this.#resizeHandler) {
       this.#resizeHandler = () => this.#alignToHotbar();
