@@ -57,6 +57,20 @@ export function registerSettings() {
   });
 
   /**
+   * Always Visible for Players — when enabled, the HUD always shows the player's assigned
+   * hero even when no token is selected. Selecting an owned token (retainer etc.) overrides this.
+   */
+  game.settings.register(MODULE_ID, "alwaysVisiblePlayers", {
+    name: game.i18n.localize("DSAHUD.Settings.AlwaysVisiblePlayers.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.AlwaysVisiblePlayers.Hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: () => {},
+  });
+
+  /**
    * Show Favorites Button — adds a Favorites button (first) when Draw Steel Plus is active.
    * Only registered/shown when DS+ is active.
    */

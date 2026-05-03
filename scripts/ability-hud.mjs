@@ -34,10 +34,23 @@ export class AbilityHud extends Application {
   /*  Data                                    */
   /* ---------------------------------------- */
 
-  /** Resolve the actor from the currently controlled token. */
+  /** Resolve the actor from the currently controlled token, with always-visible fallback for players. */
   #getActor() {
     const token = canvas.tokens?.controlled?.[0];
-    return token?.actor ?? null;
+    const tokenActor = token?.actor ?? null;
+
+    // Always-visible mode: players always see their own hero unless they have selected a token they own
+    if (!game.user.isGM) {
+      try {
+        const alwaysVisible = game.settings.get(MODULE_ID, "alwaysVisiblePlayers");
+        if (alwaysVisible) {
+          if (tokenActor && token.isOwner) return tokenActor;
+          return game.user.character ?? null;
+        }
+      } catch { /* setting not yet registered */ }
+    }
+
+    return tokenActor;
   }
 
   async getData(options = {}) {
@@ -149,6 +162,23 @@ export class AbilityHud extends Application {
 
       html.find(".dsahud-action").on("mouseleave", () => {
         this.#hideTooltip();
+      });
+
+      // Scroll the tooltip with the mouse wheel while hovering an action row
+      html.find(".dsahud-action").on("wheel", (ev) => {
+        const tt = document.getElementById("dsahud-tooltip");
+        if (!tt?.classList.contains("visible")) return;
+        ev.preventDefault();
+        tt.scrollTop += ev.originalEvent.deltaY;
+      });
+
+      // Middle-click: pin the tooltip as a persistent draggable window
+      html.find(".dsahud-action").on("mousedown", async (ev) => {
+        if (ev.button !== 1) return;
+        ev.preventDefault();
+        const actor = this.#getActor();
+        if (!actor) return;
+        await this.#pinTooltip(ev.currentTarget, actor);
       });
     }
 
@@ -306,31 +336,20 @@ export class AbilityHud extends Application {
     });
   }
 
-  /** Fallback tooltip used when DS Plus is not active — mirrors DS Plus's item-tooltip structure. */
-  async #showTooltip(actionEl, actor) {
-    // Abort any in-flight render so a slow async tooltip can't appear after mouse leave
-    this.#tooltipAbort?.abort();
-    const signal = (this.#tooltipAbort = new AbortController()).signal;
-
-    const uuid = actionEl.dataset.tooltipUuid;
+  /** Resolve an ability/feature item from an action element. */
+  async #resolveTooltipItem(actionEl, actor) {
+    const uuid       = actionEl.dataset.tooltipUuid;
     const actionType = actionEl.dataset.actionType;
     const actionId   = actionEl.dataset.actionId;
-
     let item = null;
-    if (uuid) {
-      item = await fromUuid(uuid).catch(() => null);
-    }
-    if (!item && (actionType === "ability" || actionType === "feature")) {
-      item = actor.items.get(actionId);
-    }
-    if (!item && actionType === "compendiumAbility" && actionId) {
-      item = await fromUuid(actionId).catch(() => null);
-    }
-    if (signal.aborted || !item) return;
+    if (uuid) item = await fromUuid(uuid).catch(() => null);
+    if (!item && (actionType === "ability" || actionType === "feature")) item = actor.items.get(actionId);
+    if (!item && actionType === "compendiumAbility" && actionId) item = await fromUuid(actionId).catch(() => null);
+    return item;
+  }
 
-    const tt = document.getElementById("dsahud-tooltip");
-    if (!tt) return;
-
+  /** Build the full tooltip innerHTML. Pass signal=null to skip abort checks (used for pinned tooltips). */
+  async #buildTooltipHTML(item, actor, signal) {
     const sys  = item.system;
     const ds   = globalThis.ds;
     const type = item.type;
@@ -374,7 +393,7 @@ export class AbilityHud extends Application {
       if (canEval && typeof sys.getSheetContext === "function") {
         try { await sys.getSheetContext(cardContext); } catch {}
       }
-      if (signal.aborted) return;
+      if (signal?.aborted) return null;
 
       const hasPowerRolls = cardContext.powerRolls && cardContext.powerRollEffects;
       if (hasPowerRolls || cardContext.enrichedBeforeEffect || cardContext.enrichedAfterEffect || sys.story) {
@@ -457,7 +476,7 @@ export class AbilityHud extends Application {
       }
     }
 
-    if (signal.aborted) return;
+    if (signal?.aborted) return null;
 
     // --- Build tooltip HTML ---
     const badgesHtml = headerBadges.length ? `
@@ -512,8 +531,7 @@ export class AbilityHud extends Application {
 
     const typeLabel = game.i18n.localize(CONFIG.Item.typeLabels?.[type] ?? type);
 
-    tt.className = "dsp-tooltip item-tooltip dsahud-fallback-tooltip";
-    tt.innerHTML = `
+    return `
       <section class="content">
         <section class="header">
           <div class="top">
@@ -531,10 +549,25 @@ export class AbilityHud extends Application {
         ${pillsHtml}
       </section>
     `;
+  }
 
-    // Position to the right of the popup, vertically near the hovered row
-    tt.style.left = "";
-    tt.style.top  = "";
+  /** Show the hover tooltip for an action element. */
+  async #showTooltip(actionEl, actor) {
+    this.#tooltipAbort?.abort();
+    const signal = (this.#tooltipAbort = new AbortController()).signal;
+
+    const item = await this.#resolveTooltipItem(actionEl, actor);
+    if (signal.aborted || !item) return;
+
+    const innerHTML = await this.#buildTooltipHTML(item, actor, signal);
+    if (signal.aborted || !innerHTML) return;
+
+    const tt = document.getElementById("dsahud-tooltip");
+    if (!tt) return;
+
+    tt.className = "dsp-tooltip item-tooltip dsahud-fallback-tooltip";
+    tt.innerHTML = innerHTML;
+    tt.scrollTop = 0;
     tt.classList.add("visible");
 
     const popup     = actionEl.closest(".dsahud-popup");
@@ -555,6 +588,67 @@ export class AbilityHud extends Application {
 
     tt.style.left = left + "px";
     tt.style.top  = top  + "px";
+  }
+
+  /** Pin the tooltip as a persistent draggable window (middle-click). */
+  async #pinTooltip(actionEl, actor) {
+    const item = await this.#resolveTooltipItem(actionEl, actor);
+    if (!item) return;
+
+    const innerHTML = await this.#buildTooltipHTML(item, actor, null);
+    if (!innerHTML) return;
+
+    const pin = document.createElement("div");
+    pin.className = "dsahud-pinned-tooltip";
+    pin.innerHTML = `
+      <div class="dsahud-pinned-header">
+        <span class="dsahud-pinned-name">${item.name}</span>
+        <button class="dsahud-pinned-close" type="button" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="dsahud-pinned-body">${innerHTML}</div>
+    `;
+    document.body.appendChild(pin);
+
+    // Position: use current hover tooltip position if visible, otherwise compute fresh
+    const tt = document.getElementById("dsahud-tooltip");
+    if (tt?.classList.contains("visible")) {
+      pin.style.left = tt.style.left;
+      pin.style.top  = tt.style.top;
+    } else {
+      const popup     = actionEl.closest(".dsahud-popup");
+      const popupRect = popup?.getBoundingClientRect();
+      const rowRect   = actionEl.getBoundingClientRect();
+      const gap = 8;
+      let left = popupRect ? popupRect.right + gap : rowRect.right + gap;
+      const approxWidth = 300;
+      if (left + approxWidth > window.innerWidth - 8) {
+        left = (popupRect ? popupRect.left : rowRect.left) - approxWidth - gap;
+      }
+      pin.style.left = left + "px";
+      pin.style.top  = rowRect.top + "px";
+    }
+
+    // Drag via the header bar
+    const pinHeader = pin.querySelector(".dsahud-pinned-header");
+    pinHeader.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const startX = e.clientX, startY = e.clientY;
+      const origL = parseInt(pin.style.left) || 0;
+      const origT = parseInt(pin.style.top)  || 0;
+      const onMove = (me) => {
+        pin.style.left = (origL + me.clientX - startX) + "px";
+        pin.style.top  = (origT + me.clientY - startY) + "px";
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup",   onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup",   onUp);
+    });
+
+    pin.querySelector(".dsahud-pinned-close").addEventListener("click", () => pin.remove());
   }
 
   #hideTooltip() {
@@ -770,6 +864,7 @@ export class AbilityHud extends Application {
 
   async close(options = {}) {
     this.#hideTooltip();
+    document.querySelectorAll(".dsahud-pinned-tooltip").forEach(el => el.remove());
     if (this.#resizeHandler) {
       window.removeEventListener("resize", this.#resizeHandler);
       this.#resizeHandler = null;
