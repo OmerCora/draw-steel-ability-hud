@@ -12,6 +12,7 @@ export class AbilityHud extends Application {
   #resizeHandler = null;
   #mutationObserver = null;
   #resizeObserver = null;
+  #tooltipAbort = null;
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -140,57 +141,14 @@ export class AbilityHud extends Application {
     });
     const tooltipsEnabled = game.settings.get(MODULE_ID, "enableTooltips");
     if (tooltipsEnabled) {
-      const dspActive = game.modules.get("draw-steel-plus")?.active ?? false;
-      let dspDeactivateTimer = null;
-
       html.find(".dsahud-action").on("mouseenter", async (ev) => {
-        const target = ev.currentTarget;
-
-        if (dspActive) {
-          // Cancel any pending deactivation so tooltip stays open when moving between rows
-          clearTimeout(dspDeactivateTimer);
-          dspDeactivateTimer = null;
-          const uuid = target.dataset.tooltipUuid;
-          if (!uuid) return;
-          // Manually activate Foundry's tooltip with a loading span so DS Plus's
-          // MutationObserver fires and renders the rich tooltip.
-          game.tooltip.activate(target, {
-            content: `<span class="loading" data-uuid="${uuid}"></span>`,
-            direction: "RIGHT",
-          });
-          // DS Plus reads data-tooltip-direction off #tooltip synchronously in its
-          // MutationObserver callback — set it explicitly so it always renders to the right.
-          const tooltipEl = document.getElementById("tooltip");
-          if (tooltipEl) tooltipEl.dataset.tooltipDirection = "RIGHT";
-        } else {
-          const actor = this.#getActor();
-          if (!actor) return;
-          await this.#showTooltip(target, actor);
-        }
+        const actor = this.#getActor();
+        if (!actor) return;
+        await this.#showTooltip(ev.currentTarget, actor);
       });
 
       html.find(".dsahud-action").on("mouseleave", () => {
-        if (dspActive) {
-          // Delay deactivation so DS Plus's requestAnimationFrame can complete its
-          // positioning call before _element is cleared — prevents the getBoundingClientRect crash.
-          dspDeactivateTimer = setTimeout(() => {
-            game.tooltip.deactivate();
-            dspDeactivateTimer = null;
-          }, 80);
-        } else {
-          this.#hideTooltip();
-        }
-      });
-
-      // Also deactivate DS Plus tooltip when the popup closes
-      html.find(".dsahud-popup").on("mouseleave", () => {
-        if (dspActive) {
-          clearTimeout(dspDeactivateTimer);
-          dspDeactivateTimer = setTimeout(() => {
-            game.tooltip.deactivate();
-            dspDeactivateTimer = null;
-          }, 80);
-        }
+        this.#hideTooltip();
       });
     }
 
@@ -350,6 +308,10 @@ export class AbilityHud extends Application {
 
   /** Fallback tooltip used when DS Plus is not active — mirrors DS Plus's item-tooltip structure. */
   async #showTooltip(actionEl, actor) {
+    // Abort any in-flight render so a slow async tooltip can't appear after mouse leave
+    this.#tooltipAbort?.abort();
+    const signal = (this.#tooltipAbort = new AbortController()).signal;
+
     const uuid = actionEl.dataset.tooltipUuid;
     const actionType = actionEl.dataset.actionType;
     const actionId   = actionEl.dataset.actionId;
@@ -364,7 +326,7 @@ export class AbilityHud extends Application {
     if (!item && actionType === "compendiumAbility" && actionId) {
       item = await fromUuid(actionId).catch(() => null);
     }
-    if (!item) return;
+    if (signal.aborted || !item) return;
 
     const tt = document.getElementById("dsahud-tooltip");
     if (!tt) return;
@@ -412,6 +374,7 @@ export class AbilityHud extends Application {
       if (canEval && typeof sys.getSheetContext === "function") {
         try { await sys.getSheetContext(cardContext); } catch {}
       }
+      if (signal.aborted) return;
 
       const hasPowerRolls = cardContext.powerRolls && cardContext.powerRollEffects;
       if (hasPowerRolls || cardContext.enrichedBeforeEffect || cardContext.enrichedAfterEffect || sys.story) {
@@ -480,7 +443,23 @@ export class AbilityHud extends Application {
       }
     }
 
-    // --- Build HTML mirroring DS Plus item-tooltip.hbs ---
+    // --- Spend section ---
+    let spendSection = null;
+    {
+      const spend = sys.spend;
+      const val = spend?.value;
+      const rawText = spend?.text?.trim?.() ?? "";
+      if (val != null || rawText) {
+        const resourceName = actor.type === "npc"
+          ? "Malice"
+          : (actor.items?.find(i => i.type === "class")?.system?.primary ?? "Heroic Resource");
+        spendSection = { value: val, text: rawText, resourceName };
+      }
+    }
+
+    if (signal.aborted) return;
+
+    // --- Build tooltip HTML ---
     const badgesHtml = headerBadges.length ? `
       <div class="header-badges">
         ${headerBadges.map(b => `
@@ -519,6 +498,13 @@ export class AbilityHud extends Application {
       bodyHtml = `<section class="description">${descriptionHtml}</section>`;
     }
 
+    let spendHtml = "";
+    if (spendSection) {
+      const valStr = spendSection.value != null ? String(spendSection.value) : "X";
+      const descHtml = spendSection.text ? `<div class="dsahud-spend-desc">${spendSection.text}</div>` : "";
+      spendHtml = `<section class="dsahud-spend-section"><div class="dsahud-spend-header">Spend ${valStr} ${spendSection.resourceName}</div>${descHtml}</section>`;
+    }
+
     const pillsHtml = pills.length ? `
       <ul class="pills">
         ${pills.map(p => `<li class="pill"><span class="label">${p}</span></li>`).join("")}
@@ -541,6 +527,7 @@ export class AbilityHud extends Application {
           ${metaHtml}
         </section>
         ${bodyHtml}
+        ${spendHtml}
         ${pillsHtml}
       </section>
     `;
@@ -571,6 +558,8 @@ export class AbilityHud extends Application {
   }
 
   #hideTooltip() {
+    this.#tooltipAbort?.abort();
+    this.#tooltipAbort = null;
     document.getElementById("dsahud-tooltip")?.classList.remove("visible");
   }
 
