@@ -18,6 +18,8 @@ Hooks.once("ready", () => {
 
 /** Re-render when token selection or actor data changes. */
 Hooks.on("dsahud.refresh", (options) => hud?.refresh(options));
+Hooks.on("dsresources.trackingReset", () => hud?.refresh());
+Hooks.on("dsresources.trackingChanged", () => hud?.refresh());
 Hooks.on("controlToken", () => hud?.refresh());
 Hooks.on("createCombat", () => hud?.refresh());
 Hooks.on("updateActor", () => hud?.refresh());
