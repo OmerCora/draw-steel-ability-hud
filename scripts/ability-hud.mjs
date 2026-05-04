@@ -1,5 +1,6 @@
 ﻿import { MODULE_ID } from "./config.mjs";
 import { handleAction } from "./actions.mjs";
+import { PinnedAbilityApp } from "./pinned-ability-app.mjs";
 import { buildMainActionData, buildManeuverData, buildTriggeredData, buildNoActionData, buildFavoritesData, buildCharacterData, buildItemsData, buildFeaturesData, buildMaliceData, buildVillainActionData, buildMonsterData } from "./data-builder.mjs";
 
 /**
@@ -590,7 +591,7 @@ export class AbilityHud extends Application {
     tt.style.top  = top  + "px";
   }
 
-  /** Pin the tooltip as a persistent draggable window (middle-click). */
+  /** Pin the tooltip as a persistent Foundry ApplicationV2 window (middle-click). */
   async #pinTooltip(actionEl, actor) {
     const item = await this.#resolveTooltipItem(actionEl, actor);
     if (!item) return;
@@ -598,57 +599,27 @@ export class AbilityHud extends Application {
     const innerHTML = await this.#buildTooltipHTML(item, actor, null);
     if (!innerHTML) return;
 
-    const pin = document.createElement("div");
-    pin.className = "dsahud-pinned-tooltip";
-    pin.innerHTML = `
-      <div class="dsahud-pinned-header">
-        <span class="dsahud-pinned-name">${item.name}</span>
-        <button class="dsahud-pinned-close" type="button" aria-label="Close">&#x2715;</button>
-      </div>
-      <div class="dsahud-pinned-body">${innerHTML}</div>
-    `;
-    document.body.appendChild(pin);
-
-    // Position: use current hover tooltip position if visible, otherwise compute fresh
+    // Compute initial position: mirror hover tooltip if visible, else compute fresh
+    let left, top;
     const tt = document.getElementById("dsahud-tooltip");
     if (tt?.classList.contains("visible")) {
-      pin.style.left = tt.style.left;
-      pin.style.top  = tt.style.top;
+      left = parseInt(tt.style.left) || 0;
+      top  = parseInt(tt.style.top)  || 0;
     } else {
       const popup     = actionEl.closest(".dsahud-popup");
       const popupRect = popup?.getBoundingClientRect();
       const rowRect   = actionEl.getBoundingClientRect();
       const gap = 8;
-      let left = popupRect ? popupRect.right + gap : rowRect.right + gap;
-      const approxWidth = 300;
+      left = popupRect ? popupRect.right + gap : rowRect.right + gap;
+      const approxWidth = 320;
       if (left + approxWidth > window.innerWidth - 8) {
         left = (popupRect ? popupRect.left : rowRect.left) - approxWidth - gap;
       }
-      pin.style.left = left + "px";
-      pin.style.top  = rowRect.top + "px";
+      top = rowRect.top;
     }
 
-    // Drag via the header bar
-    const pinHeader = pin.querySelector(".dsahud-pinned-header");
-    pinHeader.addEventListener("mousedown", (e) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      const startX = e.clientX, startY = e.clientY;
-      const origL = parseInt(pin.style.left) || 0;
-      const origT = parseInt(pin.style.top)  || 0;
-      const onMove = (me) => {
-        pin.style.left = (origL + me.clientX - startX) + "px";
-        pin.style.top  = (origT + me.clientY - startY) + "px";
-      };
-      const onUp = () => {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup",   onUp);
-      };
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup",   onUp);
-    });
-
-    pin.querySelector(".dsahud-pinned-close").addEventListener("click", () => pin.remove());
+    const app = new PinnedAbilityApp(item.name, innerHTML, { position: { left, top } });
+    await app.render({ force: true });
   }
 
   #hideTooltip() {
@@ -864,7 +835,7 @@ export class AbilityHud extends Application {
 
   async close(options = {}) {
     this.#hideTooltip();
-    document.querySelectorAll(".dsahud-pinned-tooltip").forEach(el => el.remove());
+    PinnedAbilityApp.closeAll();
     if (this.#resizeHandler) {
       window.removeEventListener("resize", this.#resizeHandler);
       this.#resizeHandler = null;

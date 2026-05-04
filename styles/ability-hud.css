@@ -964,8 +964,9 @@
   min-width: 0;
 }
 
-/* ---- Pinned tooltip windows (middle-click) ---- */
-.dsahud-pinned-tooltip {
+/* ---- Pinned tooltip windows (middle-click) — ApplicationV2 window ---- */
+.dsahud-pinned-window {
+  /* CSS custom properties so inner content rules resolve correctly */
   --dsp-surface-raised: light-dark(#e0d9ce, #1e1e1e);
   --dsp-border-light:   light-dark(#d4c8b8, #3a302a);
   --dsp-border:         light-dark(#c4b8a8, #2a2020);
@@ -978,54 +979,11 @@
   --dsp-accent:         light-dark(#a88b4a, #c8aa6e);
   --dsp-shadow:         light-dark(rgba(0,0,0,.2), rgba(0,0,0,.6));
 
-  position: fixed;
-  z-index: 73;
-  width: 300px;
+  width: 320px;
   font-size: 13px;
   text-align: start;
   color: var(--dsp-text-light);
-  border-radius: var(--dsp-radius-md);
-  background: var(--dsp-surface-raised);
-  box-shadow: 0 2px 20px var(--dsp-shadow);
-  border: 2px solid var(--dsp-border-light);
-  overflow: hidden;
-  pointer-events: auto;
 }
-
-.dsahud-pinned-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 5px 8px;
-  background: light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.07));
-  border-bottom: 1px solid var(--dsp-border);
-  cursor: grab;
-  user-select: none;
-}
-.dsahud-pinned-header:active { cursor: grabbing; }
-
-.dsahud-pinned-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--dsp-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.dsahud-pinned-close {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: var(--dsp-text-faint);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
-  cursor: pointer;
-}
-.dsahud-pinned-close:hover { color: var(--dsp-text); }
 
 .dsahud-pinned-body {
   padding: 6px 8px;

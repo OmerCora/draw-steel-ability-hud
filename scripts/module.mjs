@@ -6,6 +6,9 @@ let hud = null;
 
 Hooks.once("init", () => {
   registerSettings();
+  foundry.applications.handlebars.loadTemplates([
+    `modules/${MODULE_ID}/templates/pinned-ability.hbs`,
+  ]);
 });
 
 Hooks.once("ready", () => {
