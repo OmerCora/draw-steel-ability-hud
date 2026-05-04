@@ -1,8 +1,11 @@
-<div id="ds-ability-hud">
+<div id="ds-ability-hud" style="--dsahud-ui-scale: {{uiScale}}; --dsahud-popup-gap: {{popupGap}}px; --dsahud-popup-max-height: {{popupMaxHeight}}vh;">
+{{#if actorLabel.show}}
+<button class="dsahud-actor-label" type="button" title="Open Character Sheet">{{actorLabel.name}}</button>
+{{/if}}
 <div class="dsahud-bar">
   {{#if hasActor}}
   {{#each buttons}}
-  <div class="dsahud-button" data-button-id="{{this.id}}">
+  <div class="dsahud-button {{this.trackingClass}}" data-button-id="{{this.id}}">
     <i class="dsahud-button-icon {{this.icon}}"></i>
     <span class="dsahud-button-label">{{this.label}}</span>
 

@@ -14,6 +14,7 @@ export class AbilityHud extends Application {
   #mutationObserver = null;
   #resizeObserver = null;
   #tooltipAbort = null;
+  #combatActionUsage = new Map();
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -54,10 +55,96 @@ export class AbilityHud extends Application {
     return tokenActor;
   }
 
+  #getUiScale() {
+    try {
+      const setting = Number(game.settings.get(MODULE_ID, "uiScale"));
+      return setting > 0 ? setting : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  #getScaleContext() {
+    const uiScale = this.#getUiScale();
+    return {
+      uiScale,
+      popupGap: Number((4 / uiScale).toFixed(3)),
+      popupMaxHeight: Number((60 / uiScale).toFixed(3)),
+    };
+  }
+
+  #isCombatActionTrackingEnabled() {
+    try { return !!game.settings.get(MODULE_ID, "combatActionTracking"); }
+    catch { return false; }
+  }
+
+  #getCombatUsage(actor, combat) {
+    const key = `${combat.id}:${actor.uuid}`;
+    if (!this.#combatActionUsage.has(key)) this.#combatActionUsage.set(key, {});
+    return this.#combatActionUsage.get(key);
+  }
+
+  #getTurnKey(combat) {
+    return `${combat.id}:${combat.round ?? 0}:${combat.turn ?? 0}`;
+  }
+
+  #getRoundKey(combat) {
+    return `${combat.id}:${combat.round ?? 0}`;
+  }
+
+  #isActorInCombat(actor, combat) {
+    return combat?.combatants?.some(combatant => combatant.actor?.uuid === actor.uuid) ?? false;
+  }
+
+  #isActorTurn(actor, combat) {
+    const currentCombatant = combat?.combatant ?? combat?.combatants?.get(combat.current?.combatantId);
+    return currentCombatant?.actor?.uuid === actor.uuid;
+  }
+
+  #applyCombatActionTracking(actor, buttons) {
+    if (!this.#isCombatActionTrackingEnabled()) return;
+    const combat = game.combat;
+    if (!combat?.started) return;
+    if (!this.#isActorInCombat(actor, combat)) return;
+
+    const usage = this.#getCombatUsage(actor, combat);
+    const isActorTurn = this.#isActorTurn(actor, combat);
+    const turnKey = this.#getTurnKey(combat);
+    const roundKey = this.#getRoundKey(combat);
+
+    for (const button of buttons) {
+      if (button.id === "main-action") {
+        if (!isActorTurn) continue;
+        button.trackingClass = usage.mainTurnKey === turnKey ? "dsahud-tracking-spent" : "dsahud-tracking-available";
+      } else if (button.id === "maneuver") {
+        if (!isActorTurn) continue;
+        button.trackingClass = usage.maneuverTurnKey === turnKey ? "dsahud-tracking-spent" : "dsahud-tracking-available";
+      } else if (button.id === "triggered-action") {
+        button.trackingClass = usage.triggeredRoundKey === roundKey ? "dsahud-tracking-spent" : "dsahud-tracking-available";
+      }
+    }
+  }
+
+  #markCombatActionUsed(actor, buttonId) {
+    if (!this.#isCombatActionTrackingEnabled()) return false;
+    const combat = game.combat;
+    if (!combat?.started) return false;
+    if (!this.#isActorInCombat(actor, combat)) return false;
+    const usage = this.#getCombatUsage(actor, combat);
+
+    if (buttonId === "main-action") usage.mainTurnKey = this.#getTurnKey(combat);
+    else if (buttonId === "maneuver") usage.maneuverTurnKey = this.#getTurnKey(combat);
+    else if (buttonId === "triggered-action") usage.triggeredRoundKey = this.#getRoundKey(combat);
+    else return false;
+
+    return true;
+  }
+
   async getData(options = {}) {
     const actor = this.#getActor();
+    const scaleContext = this.#getScaleContext();
     if (!actor || !["hero", "npc", "retainer"].includes(actor.type)) {
-      return { hasActor: false, buttons: [] };
+      return { hasActor: false, buttons: [], actorLabel: { show: false }, ...scaleContext };
     }
 
     const buttons = [];
@@ -118,7 +205,24 @@ export class AbilityHud extends Application {
       );
     }
 
-    return { hasActor: true, buttons };
+    // Compute actor name label
+    const nameDisplayMode = (() => { try { return game.settings.get(MODULE_ID, "actorNameDisplay") ?? "disabled"; } catch { return "disabled"; } })();
+    let actorLabel = { show: false };
+    if (nameDisplayMode !== "disabled") {
+      const token = canvas.tokens?.controlled?.[0];
+      const tokenName = token?.document?.name ?? actor.name;
+      const displayName = tokenName.length <= actor.name.length ? tokenName : actor.name;
+      if (nameDisplayMode === "above") {
+        actorLabel = { show: true, name: displayName };
+      } else if (nameDisplayMode === "character") {
+        const nameButton = buttons.find(button => button.id === "character") ?? buttons.find(button => button.id === "monster");
+        if (nameButton) nameButton.label = displayName;
+      }
+    }
+
+    this.#applyCombatActionTracking(actor, buttons);
+
+    return { hasActor: true, buttons, actorLabel, ...scaleContext };
   }
 
   /* ---------------------------------------- */
@@ -134,6 +238,13 @@ export class AbilityHud extends Application {
       tt.id = "dsahud-tooltip";
       document.body.appendChild(tt);
     }
+
+    // Actor name label (above-HUD mode) → open character sheet
+    html.find(".dsahud-actor-label").on("click", () => {
+      const actor = this.#getActor();
+      if (!actor) return;
+      actor.sheet.render(true);
+    });
 
     // Hover on a top-level button → show its popup
     html.find(".dsahud-button").on("mouseenter", (ev) => {
@@ -180,6 +291,7 @@ export class AbilityHud extends Application {
         const actor = this.#getActor();
         if (!actor) return;
         await this.#pinTooltip(ev.currentTarget, actor);
+        this.#hideTooltip();
       });
     }
 
@@ -187,13 +299,18 @@ export class AbilityHud extends Application {
     html.find(".dsahud-action").on("click contextmenu", async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      this.#hideTooltip();
       const target = ev.currentTarget;
       const actionType = target.dataset.actionType;
       const actionId = target.dataset.actionId;
+      const buttonId = target.closest(".dsahud-button")?.dataset.buttonId ?? "";
       const actor = this.#getActor();
       if (!actor) return;
       const isRightClick = ev.type === "contextmenu";
-      await handleAction(actor, actionType, actionId, { isRightClick });
+      const wasUsed = await handleAction(actor, actionType, actionId, { isRightClick });
+      if (!isRightClick && wasUsed !== false && this.#markCombatActionUsed(actor, buttonId)) {
+        await this.render(false);
+      }
     });
 
     // Toggle condition buttons
@@ -558,15 +675,18 @@ export class AbilityHud extends Application {
     const signal = (this.#tooltipAbort = new AbortController()).signal;
 
     const item = await this.#resolveTooltipItem(actionEl, actor);
-    if (signal.aborted || !item) return;
+    if (signal.aborted || !item || !actionEl.isConnected || !actionEl.matches(":hover")) return;
 
     const innerHTML = await this.#buildTooltipHTML(item, actor, signal);
-    if (signal.aborted || !innerHTML) return;
+    if (signal.aborted || !innerHTML || !actionEl.isConnected || !actionEl.matches(":hover")) return;
 
     const tt = document.getElementById("dsahud-tooltip");
     if (!tt) return;
 
+    const uiScale = this.#getUiScale();
     tt.className = "dsp-tooltip item-tooltip dsahud-fallback-tooltip";
+    tt.style.setProperty("--dsahud-ui-scale", String(uiScale));
+    tt.style.setProperty("--dsahud-tooltip-max-height", `${60 / uiScale}vh`);
     tt.innerHTML = innerHTML;
     tt.scrollTop = 0;
     tt.classList.add("visible");
@@ -577,14 +697,15 @@ export class AbilityHud extends Application {
     const gap       = 8;
 
     let left = popupRect ? popupRect.right + gap : rowRect.right + gap;
-    const ttWidth = tt.offsetWidth;
-    if (left + ttWidth > window.innerWidth - 8) {
-      left = (popupRect ? popupRect.left : rowRect.left) - ttWidth - gap;
+    const tooltipRect = tt.getBoundingClientRect();
+    const tooltipWidth = tooltipRect.width;
+    if (left + tooltipWidth > window.innerWidth - 8) {
+      left = (popupRect ? popupRect.left : rowRect.left) - tooltipWidth - gap;
     }
 
     let top = rowRect.top;
-    const ttHeight = tt.offsetHeight;
-    if (top + ttHeight > window.innerHeight - 8) top = window.innerHeight - ttHeight - 8;
+    const tooltipHeight = tooltipRect.height;
+    if (top + tooltipHeight > window.innerHeight - 8) top = window.innerHeight - tooltipHeight - 8;
     if (top < 8) top = 8;
 
     tt.style.left = left + "px";
@@ -610,15 +731,16 @@ export class AbilityHud extends Application {
       const popupRect = popup?.getBoundingClientRect();
       const rowRect   = actionEl.getBoundingClientRect();
       const gap = 8;
+      const uiScale = this.#getUiScale();
       left = popupRect ? popupRect.right + gap : rowRect.right + gap;
-      const approxWidth = 320;
+      const approxWidth = 320 * uiScale;
       if (left + approxWidth > window.innerWidth - 8) {
         left = (popupRect ? popupRect.left : rowRect.left) - approxWidth - gap;
       }
       top = rowRect.top;
     }
 
-    const app = new PinnedAbilityApp(item.name, innerHTML, { position: { left, top } });
+    const app = new PinnedAbilityApp(item.name, innerHTML, this.#getUiScale(), { position: { left, top } });
     await app.render({ force: true });
   }
 
@@ -644,6 +766,8 @@ export class AbilityHud extends Application {
 
   /** After render, size and align the bar to the Foundry hotbar. */
   async _render(force, options) {
+    this.#hideTooltip();
+
     // Preserve scroll positions of internal panels across re-renders triggered
     // by clicks (gain/spend/etc. would otherwise reset to top).
     const scrollSelectors = [".dsahud-resources-content", ".dsahud-char-panel"];
@@ -778,6 +902,7 @@ export class AbilityHud extends Application {
     const slots = hotbar.querySelectorAll("li.macro-slot, .macro-slot, li[data-slot]");
     const hRect = hotbar.getBoundingClientRect();
     const bottom = (window.innerHeight - hRect.top + 6) + "px";
+    const uiScale = this.#getUiScale();
 
     /** Center the HUD over [refLeft, refRight] when it's wider; else left-align. */
     const applyPosition = (refLeft, refRight, wrap) => {
@@ -787,19 +912,20 @@ export class AbilityHud extends Application {
       // Unconstrain width so scrollWidth reflects natural content size
       el.style.width = "max-content";
       const barWidth = bar.scrollWidth; // forced layout read
+      const visualBarWidth = bar.getBoundingClientRect().width || (barWidth * uiScale);
 
       let hudLeft;
-      if (barWidth > refWidth) {
-        hudLeft = Math.round(refCenter - barWidth / 2);
+      if (visualBarWidth > refWidth) {
+        hudLeft = Math.round(refCenter - visualBarWidth / 2);
         // Clamp so the HUD doesn't spill off-screen
-        hudLeft = Math.max(4, Math.min(hudLeft, window.innerWidth - barWidth - 4));
+        hudLeft = Math.max(4, Math.min(hudLeft, window.innerWidth - visualBarWidth - 4));
       } else {
         hudLeft = refLeft;
       }
 
       bar.style.flexWrap = wrap;
       el.style.left   = hudLeft + "px";
-      el.style.width  = Math.max(barWidth, refWidth) + "px";
+      el.style.width  = Math.max(barWidth, refWidth / uiScale) + "px";
       el.style.bottom = bottom;
     };
 
@@ -828,9 +954,14 @@ export class AbilityHud extends Application {
   }
 
   /** External refresh trigger — debounced re-render. */
-  refresh() {
+  refresh(options = {}) {
+    this._refreshRealign = this._refreshRealign || !!options.realign;
     if (this._refreshTimer) clearTimeout(this._refreshTimer);
-    this._refreshTimer = setTimeout(() => this.render(false), 50);
+    this._refreshTimer = setTimeout(() => {
+      if (this._refreshRealign) this._aligned = false;
+      this._refreshRealign = false;
+      this.render(false);
+    }, 50);
   }
 
   async close(options = {}) {

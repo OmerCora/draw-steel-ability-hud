@@ -1,3 +1,5 @@
+import { MODULE_ID } from "./config.mjs";
+
 /**
  * Handle all click actions from the HUD.
  * Left click = use/roll, Right click = share description to chat.
@@ -13,11 +15,12 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
     /* ---- Abilities (on the actor) ---- */
     case "ability": {
       const item = actor.items.get(actionId);
-      if (!item) return;
+      if (!item) return false;
       if (isRightClick) {
         await shareItemToChat(actor, item);
       } else {
-        await item.system.use();
+        const result = await item.system.use();
+        return result !== null;
       }
       break;
     }
@@ -25,18 +28,19 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
     /* ---- Compendium abilities (generic / homebrew) ---- */
     case "compendiumAbility": {
       const doc = await fromUuid(actionId);
-      if (!doc) return;
+      if (!doc) return false;
       if (isRightClick) {
         await shareItemToChat(actor, doc);
       } else {
-        // If the ability has a power roll, use it via the actor
-        // First check if the actor already owns it; if not, use from compendium
-        const owned = actor.items.find(i => i.getFlag("core", "sourceId") === actionId || i.system._dsid === doc.system._dsid);
-        if (owned) {
-          await owned.system.use();
-        } else {
-          await shareItemToChat(actor, doc);
-        }
+        const owned = actor.items.find(item => {
+          const sourceMatches = item.getFlag("core", "sourceId") === actionId;
+          const dsidMatches = !!doc.system?._dsid && item.system?._dsid === doc.system._dsid;
+          return sourceMatches || dsidMatches;
+        });
+        const embedded = owned ?? await importCompendiumAbility(actor, doc, actionId);
+        if (!embedded) return false;
+        const result = await embedded.system.use();
+        return result !== null;
       }
       break;
     }
@@ -44,7 +48,7 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
     /* ---- Print feature / treasure description to chat ---- */
     case "feature": {
       const item = actor.items.get(actionId);
-      if (!item) return;
+      if (!item) return false;
       await shareItemToChat(actor, item);
       break;
     }
@@ -165,6 +169,26 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
       await actor.toggleStatusEffect(actionId);
       break;
     }
+  }
+  return true;
+}
+
+async function importCompendiumAbility(actor, sourceItem, sourceUuid) {
+  if (sourceItem.type !== "ability") return null;
+  const itemData = sourceItem.toObject();
+  delete itemData._id;
+  delete itemData.folder;
+  itemData.flags ??= {};
+  foundry.utils.setProperty(itemData, "flags.core.sourceId", sourceUuid);
+  foundry.utils.setProperty(itemData, `flags.${MODULE_ID}.importedFromHud`, true);
+
+  try {
+    const [created] = await actor.createEmbeddedDocuments("Item", [itemData], { renderSheet: false });
+    return created ?? null;
+  } catch (error) {
+    console.error(`${MODULE_ID} | Failed to import ability for HUD use`, error);
+    ui.notifications.error(game.i18n.localize("DSAHUD.Notify.ImportAbilityFailed") || "Could not add that ability to the actor.");
+    return null;
   }
 }
 

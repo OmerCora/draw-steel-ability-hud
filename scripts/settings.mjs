@@ -57,6 +57,58 @@ export function registerSettings() {
   });
 
   /**
+   * Actor Name Display — controls where the current actor's name is shown.
+   * "above": label above the HUD bar (clicking opens sheet).
+   * "character": overrides the Character button label.
+   * "disabled": no name display (legacy behaviour).
+   */
+  game.settings.register(MODULE_ID, "actorNameDisplay", {
+    name: game.i18n.localize("DSAHUD.Settings.ActorNameDisplay.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.ActorNameDisplay.Hint"),
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      above:     game.i18n.localize("DSAHUD.Settings.ActorNameDisplay.Above"),
+      character: game.i18n.localize("DSAHUD.Settings.ActorNameDisplay.Character"),
+      disabled:  game.i18n.localize("DSAHUD.Settings.ActorNameDisplay.Disabled"),
+    },
+    default: "above",
+    onChange: () => Hooks.callAll("dsahud.refresh", { realign: true }),
+  });
+
+  /**
+   * HUD UI Scale — client preference for making all HUD UI larger.
+   */
+  game.settings.register(MODULE_ID, "uiScale", {
+    name: game.i18n.localize("DSAHUD.Settings.UIScale.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.UIScale.Hint"),
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      "0":   game.i18n.localize("DSAHUD.Settings.UIScale.Default"),
+      "1.1": game.i18n.localize("DSAHUD.Settings.UIScale.Scale110"),
+      "1.2": game.i18n.localize("DSAHUD.Settings.UIScale.Scale120"),
+    },
+    default: "0",
+    onChange: () => Hooks.callAll("dsahud.refresh", { realign: true }),
+  });
+
+  /**
+   * Combat Action Tracking — visual-only tracking of main, maneuver, and triggered usage.
+   */
+  game.settings.register(MODULE_ID, "combatActionTracking", {
+    name: game.i18n.localize("DSAHUD.Settings.CombatActionTracking.Name"),
+    hint: game.i18n.localize("DSAHUD.Settings.CombatActionTracking.Hint"),
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: () => Hooks.callAll("dsahud.refresh"),
+  });
+
+  /**
    * Always Visible for Players — when enabled, the HUD always shows the player's assigned
    * hero even when no token is selected. Selecting an owned token (retainer etc.) overrides this.
    */
@@ -77,12 +129,12 @@ export function registerSettings() {
   game.settings.register(MODULE_ID, "showFavoritesButton", {
     name: game.i18n.localize("DSAHUD.Settings.ShowFavoritesButton.Name"),
     hint: game.i18n.localize("DSAHUD.Settings.ShowFavoritesButton.Hint"),
-    scope: "world",
+    scope: "client",
     config: game.modules.get("draw-steel-plus")?.active ?? false,
     requiresReload: false,
     type: Boolean,
     default: true,
-    onChange: () => {},
+    onChange: () => Hooks.callAll("dsahud.refresh", { realign: true }),
   });
 
   /**

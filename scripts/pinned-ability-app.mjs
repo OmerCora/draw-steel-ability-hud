@@ -25,17 +25,20 @@ export class PinnedAbilityApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   #itemName = "";
   #content = "";
+  #uiScale = 1;
 
   /**
    * @param {string} itemName   The ability name shown in the window title bar.
    * @param {string} content    Pre-built inner HTML (from AbilityHud#buildTooltipHTML).
+   * @param {number} uiScale     HUD UI scale to apply to pinned content.
    * @param {object} [options]  ApplicationV2 options (can include `position: {left, top}`).
    */
-  constructor(itemName, content, options = {}) {
+  constructor(itemName, content, uiScale = 1, options = {}) {
     const id = `dsahud-pinned-${foundry.utils.randomID()}`;
     super(foundry.utils.mergeObject({ id }, options, { inplace: false }));
     this.#itemName = itemName;
     this.#content = content;
+    this.#uiScale = uiScale;
     PinnedAbilityApp.#instances.add(this);
   }
 
@@ -46,7 +49,7 @@ export class PinnedAbilityApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** @override */
   async _prepareContext(_options) {
-    return { content: this.#content };
+    return { content: this.#content, uiScale: this.#uiScale };
   }
 
   /** @override Remove from instance tracking on close. */

@@ -17,13 +17,16 @@ Hooks.once("ready", () => {
 });
 
 /** Re-render when token selection or actor data changes. */
+Hooks.on("dsahud.refresh", (options) => hud?.refresh(options));
 Hooks.on("controlToken", () => hud?.refresh());
+Hooks.on("createCombat", () => hud?.refresh());
 Hooks.on("updateActor", () => hud?.refresh());
 Hooks.on("updateItem", () => hud?.refresh());
 Hooks.on("createItem", () => hud?.refresh());
 Hooks.on("deleteItem", () => hud?.refresh());
 Hooks.on("updateCombat", () => hud?.refresh());
 Hooks.on("deleteCombat", () => hud?.refresh());
+Hooks.on("combatTurnChange", () => hud?.refresh());
 Hooks.on("updateActiveEffect", () => hud?.refresh());
 Hooks.on("createActiveEffect", () => hud?.refresh());
 Hooks.on("deleteActiveEffect", () => hud?.refresh());

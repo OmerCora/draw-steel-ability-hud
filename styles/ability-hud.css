@@ -6,9 +6,38 @@
 #ds-ability-hud {
   position: fixed;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: scale(var(--dsahud-ui-scale, 1));
+  transform-origin: bottom left;
   pointer-events: none;
   z-index: 70;
   /* left, bottom, width set by JS */
+}
+
+/* ---- Actor name label (Above HUD mode) ---- */
+.dsahud-actor-label {
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(20, 20, 20, 0.75);
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  line-height: 1.6;
+  transition: background 0.15s, color 0.15s;
+}
+.dsahud-actor-label:hover {
+  background: rgba(50, 50, 50, 0.95);
+  color: #fff;
 }
 
 /* ---- Bar container ---- */
@@ -46,6 +75,22 @@
   border-color: rgba(180, 180, 180, 0.7);
 }
 
+.dsahud-button.dsahud-tracking-available {
+  border-color: rgba(70, 210, 120, 0.95);
+  box-shadow: 0 0 0 1px rgba(70, 210, 120, 0.35), 0 0 10px rgba(70, 210, 120, 0.25);
+}
+
+.dsahud-button.dsahud-tracking-spent {
+  border-color: rgba(235, 145, 55, 0.95);
+  box-shadow: 0 0 0 1px rgba(235, 145, 55, 0.28);
+}
+
+.dsahud-button.dsahud-tracking-spent > .dsahud-button-icon,
+.dsahud-button.dsahud-tracking-spent > .dsahud-button-label {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+}
+
 .dsahud-button-icon {
   font-size: 15px;
 }
@@ -58,12 +103,12 @@
 .dsahud-popup {
   display: none;
   position: absolute;
-  bottom: calc(100% + 4px);
+  bottom: calc(100% + var(--dsahud-popup-gap, 4px));
   left: 50%;
   transform: translateX(-50%);
   min-width: 240px;
   max-width: 380px;
-  max-height: 60vh;
+  max-height: var(--dsahud-popup-max-height, 60vh);
   overflow-y: auto;
   background: rgba(15, 15, 15, 0.95);
   border: 1px solid rgba(128, 128, 128, 0.5);
@@ -934,7 +979,7 @@
   display: none;
   z-index: 72;
   width: 300px;
-  max-height: 60vh;
+  max-height: var(--dsahud-tooltip-max-height, 60vh);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
@@ -948,11 +993,13 @@
   border: 2px solid var(--dsp-border-light);
   pointer-events: none;
   animation: dsahud-tooltip-in 0.15s ease;
+  transform: scale(var(--dsahud-ui-scale, 1));
+  transform-origin: top left;
 }
 
 @keyframes dsahud-tooltip-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 #dsahud-tooltip.visible { display: block; }
@@ -991,6 +1038,7 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+  zoom: var(--dsahud-ui-scale, 1);
 }
 
 /* Header */

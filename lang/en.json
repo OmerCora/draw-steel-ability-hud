@@ -51,10 +51,11 @@
   "DSAHUD.Actions.DamageSurge3": "Damage Surge (3)",
   "DSAHUD.Actions.PotencySurge": "Potency Surge (2)",
   "DSAHUD.Actions.HeroTokenRerollTest": "Reroll a Test",
-  "DSAHUD.Actions.HeroTokenSucceedSave": "Succeed on a Failed Save",
+  "DSAHUD.Actions.HeroTokenSucceedSave": "Succeed Failed Save",
 
   "DSAHUD.Notify.NoSurges": "Not enough surges!",
   "DSAHUD.Notify.NoHeroTokens": "Not enough hero tokens!",
+  "DSAHUD.Notify.ImportAbilityFailed": "Could not add that ability to the actor.",
 
   "DSAHUD.Settings.ShowFavoritesButton.Name": "Show Favorites Button",
   "DSAHUD.Settings.ShowFavoritesButton.Hint": "Add a Favorites button (shown first) that lists all abilities, features, and items marked as favorites in Draw Steel Plus. Requires Draw Steel Plus to be active.",
@@ -72,5 +73,17 @@
   "DSAHUD.Settings.ShowResourcesPanel.Name": "Embed Resources Panel",
   "DSAHUD.Settings.ShowResourcesPanel.Hint": "Embed the heroic resource panel (from Draw Steel Resources UI) in the Character popup, between the character overview and ability buttons. Requires Draw Steel Resources UI to be active.",
   "DSAHUD.Settings.AlwaysVisiblePlayers.Name": "Always Visible for Players",
-  "DSAHUD.Settings.AlwaysVisiblePlayers.Hint": "When enabled, players always see their assigned hero in the HUD even without a token selected. If they select a token they own (such as a retainer), that actor's HUD is shown instead. GMs are not affected."
+  "DSAHUD.Settings.AlwaysVisiblePlayers.Hint": "When enabled, players always see their assigned hero in the HUD even without a token selected. If they select a token they own (such as a retainer), that actor's HUD is shown instead. GMs are not affected.",
+  "DSAHUD.Settings.ActorNameDisplay.Name": "Actor Name Display",
+  "DSAHUD.Settings.ActorNameDisplay.Hint": "Controls where the current actor's name is shown in the HUD. 'Above HUD' shows a clickable label above the leftmost button (clicking opens the character sheet). 'On Character Button' replaces the Character button's label with the actor name. 'Disabled' shows no name.",
+  "DSAHUD.Settings.ActorNameDisplay.Above": "Above HUD",
+  "DSAHUD.Settings.ActorNameDisplay.Character": "On Character Button",
+  "DSAHUD.Settings.ActorNameDisplay.Disabled": "Disabled",
+  "DSAHUD.Settings.UIScale.Name": "HUD UI Scale",
+  "DSAHUD.Settings.UIScale.Hint": "Increase the size of the HUD, its menus, and ability tooltips for this client.",
+  "DSAHUD.Settings.UIScale.Default": "Default",
+  "DSAHUD.Settings.UIScale.Scale110": "1.1x",
+  "DSAHUD.Settings.UIScale.Scale120": "1.2x",
+  "DSAHUD.Settings.CombatActionTracking.Name": "Combat Action Tracking",
+  "DSAHUD.Settings.CombatActionTracking.Hint": "Visually tracks main action, maneuver, and triggered action usage during combat. This only changes HUD highlights and never blocks actions."
 }
