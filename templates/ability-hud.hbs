@@ -10,7 +10,7 @@
     <span class="dsahud-button-label">{{this.label}}</span>
 
     {{#if this.sections.length}}
-    <div class="dsahud-popup{{#if this.charPanel}} dsahud-popup--char{{else}}{{#if this.conditions}} dsahud-popup--char{{else}}{{#if this.resourcesPanel}} dsahud-popup--char{{/if}}{{/if}}{{/if}}">
+    <div class="dsahud-popup{{#if this.charPanel}} dsahud-popup--char{{else}}{{#if this.conditions}} dsahud-popup--char{{else}}{{#if this.resourcesPanel}} dsahud-popup--char{{else}}{{#if this.featuresPanel}} dsahud-popup--features{{/if}}{{/if}}{{/if}}{{/if}}">
       {{#if this.charPanel}}
       <div class="dsahud-char-panel">
         <div class="dsahud-char-name">{{this.charPanel.name}}</div>
@@ -336,8 +336,9 @@
         </div>
       </div>
       {{/if}}
-      <div class="dsahud-tools-col">
-        {{#each this.sections}}
+      {{#if this.featuresPanel}}
+      <div class="dsahud-features-left-col">
+        {{#each this.leftSections}}
         <div class="dsahud-section">
           <div class="dsahud-section-title">{{this.title}}</div>
           <div class="dsahud-section-items">
@@ -345,6 +346,7 @@
             <button class="dsahud-action"
                     data-action-type="{{this.actionType}}"
                     data-action-id="{{this.actionId}}"
+                    data-ability-type="{{this.abilityType}}"
                     {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}>
               {{#if this.img}}
               <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
@@ -361,6 +363,60 @@
         </div>
         {{/each}}
       </div>
+      <div class="dsahud-features-right-col">
+        {{#each this.rightSections}}
+        <div class="dsahud-section">
+          <div class="dsahud-section-title">{{this.title}}</div>
+          <div class="dsahud-section-items">
+            {{#each this.items}}
+            <button class="dsahud-action"
+                    data-action-type="{{this.actionType}}"
+                    data-action-id="{{this.actionId}}"
+                    data-ability-type="{{this.abilityType}}"
+                    {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}>
+              {{#if this.img}}
+              <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
+              {{else}}
+              <i class="dsahud-action-icon {{this.emoji}}"></i>
+              {{/if}}
+              <span class="dsahud-action-name">{{this.name}}</span>
+              {{#if this.cost}}
+              <span class="dsahud-action-cost">{{this.cost}}</span>
+              {{/if}}
+            </button>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="dsahud-tools-col">
+        {{#each this.sections}}
+        <div class="dsahud-section">
+          <div class="dsahud-section-title">{{this.title}}</div>
+          <div class="dsahud-section-items">
+            {{#each this.items}}
+            <button class="dsahud-action"
+                    data-action-type="{{this.actionType}}"
+                    data-action-id="{{this.actionId}}"
+                    data-ability-type="{{this.abilityType}}"
+                    {{#if this.uuid}}data-tooltip-uuid="{{this.uuid}}" data-tooltip-direction="RIGHT"{{/if}}>
+              {{#if this.img}}
+              <img class="dsahud-action-img" src="{{this.img}}" alt="" width="20" height="20">
+              {{else}}
+              <i class="dsahud-action-icon {{this.emoji}}"></i>
+              {{/if}}
+              <span class="dsahud-action-name">{{this.name}}</span>
+              {{#if this.cost}}
+              <span class="dsahud-action-cost">{{this.cost}}</span>
+              {{/if}}
+            </button>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
       {{#if this.conditions}}
       <div class="dsahud-conditions-col">
         <div class="dsahud-cp-title" style="padding: 8px 8px 4px;">Conditions</div>

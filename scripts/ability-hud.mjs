@@ -85,7 +85,8 @@ export class AbilityHud extends Application {
   }
 
   #getTurnKey(combat) {
-    return `${combat.id}:${combat.round ?? 0}:${combat.turn ?? 0}`;
+    const combatant = combat.combatant;
+    return `${combat.id}:${combat.round ?? 0}:${combat.turn ?? ""}:${combatant?.initiative ?? ""}`;
   }
 
   #getRoundKey(combat) {
@@ -173,7 +174,7 @@ export class AbilityHud extends Application {
         buttons.push({ id: "items", label: game.i18n.localize("DSAHUD.Buttons.Items"), icon: "fa-solid fa-bag-shopping", sections: itemsSections });
       }
       buttons.push(
-        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
+        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", ...(await buildFeaturesData(actor)) },
       );
     } else if (actor.type === "npc") {
       // NPC: show abilities grouped by type
@@ -182,7 +183,7 @@ export class AbilityHud extends Application {
         { id: "maneuver", label: game.i18n.localize("DSAHUD.Buttons.Maneuver"), icon: "fa-solid fa-person-running", sections: await buildManeuverData(actor) },
         { id: "triggered-action", label: game.i18n.localize("DSAHUD.Buttons.TriggeredAction"), icon: "fa-solid fa-bolt", sections: await buildTriggeredData(actor) },
         { id: "monster", label: game.i18n.localize("DSAHUD.Buttons.Monster"), icon: "fa-solid fa-skull", ...(await buildMonsterData(actor)) },
-        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
+        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", ...(await buildFeaturesData(actor)), featuresPanel: false },
       );
     } else if (actor.type === "retainer") {
       // Retainer: hero-like actions, but no items button
@@ -201,7 +202,7 @@ export class AbilityHud extends Application {
       }
       buttons.push(
         { id: "character", label: game.i18n.localize("DSAHUD.Buttons.Character"), icon: "fa-solid fa-user", ...(await buildCharacterData(actor)) },
-        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", sections: await buildFeaturesData(actor) },
+        { id: "features", label: game.i18n.localize("DSAHUD.Buttons.Features"), icon: "fa-solid fa-scroll", ...(await buildFeaturesData(actor)), featuresPanel: false },
       );
     }
 
@@ -307,8 +308,10 @@ export class AbilityHud extends Application {
       const actor = this.#getActor();
       if (!actor) return;
       const isRightClick = ev.type === "contextmenu";
+      const abilityType = target.dataset.abilityType ?? "";
+      const isFreeAction = abilityType === "freeTriggered" || abilityType === "freeManeuver";
       const wasUsed = await handleAction(actor, actionType, actionId, { isRightClick });
-      if (!isRightClick && wasUsed !== false && this.#markCombatActionUsed(actor, buttonId)) {
+      if (!isRightClick && !isFreeAction && wasUsed !== false && this.#markCombatActionUsed(actor, buttonId)) {
         await this.render(false);
       }
     });
@@ -580,6 +583,65 @@ export class AbilityHud extends Application {
       }
     }
 
+    // --- Kit equipment + bonuses block ---
+    let kitHtml = "";
+    if (type === "kit") {
+      const dsCfg = globalThis.ds?.CONFIG;
+      const eq = sys.equipment ?? {};
+      const bon = sys.bonuses ?? {};
+
+      // Equipment pills
+      const equipPills = [];
+      const armorKey = eq.armor ?? "none";
+      if (armorKey && armorKey !== "none") {
+        const label = dsCfg?.equipment?.armor?.[armorKey]?.label ?? armorKey;
+        equipPills.push(label);
+      }
+      const weaponKeys = Array.from(eq.weapon ?? []);
+      for (const wk of weaponKeys) {
+        const label = dsCfg?.equipment?.weapon?.[wk]?.label ?? wk;
+        equipPills.push(label);
+      }
+      if (eq.shield) equipPills.push("Shield");
+
+      const equipPillsHtml = equipPills.length
+        ? `<ul class="pills" style="margin-top:6px">${equipPills.map(p => `<li class="pill"><span class="label">${p}</span></li>`).join("")}</ul>`
+        : `<p style="opacity:0.6;font-size:0.85em">No equipment</p>`;
+
+      // Tier damage formatter: "tier1/tier2/+tier3"
+      const fmtTier = (d) => {
+        if (!d) return null;
+        const fmt = (v) => {
+          const n = Number(v ?? 0);
+          return n > 0 ? `+${n}` : String(n);
+        };
+        const parts = [fmt(d.tier1), fmt(d.tier2), fmt(d.tier3)];
+        // Only show if at least one value is non-zero
+        if (parts.every(p => p === "0")) return null;
+        return parts.join("/");
+      };
+
+      const bonusRows = [];
+      const meleeDmg = fmtTier(bon.melee?.damage);
+      if (meleeDmg) bonusRows.push({ label: "Melee Dmg", value: meleeDmg });
+      const meleeDist = bon.melee?.distance;
+      if (meleeDist != null) bonusRows.push({ label: "Melee Reach", value: `+${meleeDist}` });
+      const rangedDmg = fmtTier(bon.ranged?.damage);
+      if (rangedDmg) bonusRows.push({ label: "Ranged Dmg", value: rangedDmg });
+      const rangedDist = bon.ranged?.distance;
+      if (rangedDist != null) bonusRows.push({ label: "Ranged Dist", value: `+${rangedDist}` });
+      if (bon.stamina) bonusRows.push({ label: "Stamina", value: `+${bon.stamina}` });
+      if (bon.speed) bonusRows.push({ label: "Speed", value: `+${bon.speed}` });
+      if (bon.stability) bonusRows.push({ label: "Stability", value: `+${bon.stability}` });
+      if (bon.disengage) bonusRows.push({ label: "Disengage", value: `+${bon.disengage}` });
+
+      const bonusGridHtml = bonusRows.length
+        ? `<div class="dsahud-kit-bonuses">${bonusRows.map(r => `<span class="dsahud-kit-bonus-lbl">${r.label}</span><span class="dsahud-kit-bonus-val">${r.value}</span>`).join("")}</div>`
+        : "";
+
+      kitHtml = `<section class="dsahud-kit-section">${equipPillsHtml}${bonusGridHtml}</section>`;
+    }
+
     // --- Spend section ---
     let spendSection = null;
     {
@@ -663,6 +725,7 @@ export class AbilityHud extends Application {
           ${metaHtml}
         </section>
         ${bodyHtml}
+        ${kitHtml}
         ${spendHtml}
         ${pillsHtml}
       </section>

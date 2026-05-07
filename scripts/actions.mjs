@@ -169,6 +169,25 @@ export async function handleAction(actor, actionType, actionId, { isRightClick =
       await actor.toggleStatusEffect(actionId);
       break;
     }
+
+    /* ---- Basic Malice: Brutal Effectiveness (3 Malice) ---- */
+    case "brutalEffectiveness": {
+      const remaining = await spendMalice(actor, 3);
+      if (remaining === false) break;
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content: `<h3>Brutal Effectiveness</h3>
+          <p>Spent <strong>3 Malice</strong>. The next ability the monster uses with a potency has that potency increased by 1.</p>
+          <p>Malice remaining: ${remaining}</p>`,
+      });
+      break;
+    }
+
+    /* ---- Basic Malice: Malicious Strike (5+ Malice) ---- */
+    case "maliciousStrike": {
+      await showMaliciousStrikeDialog(actor);
+      break;
+    }
   }
   return true;
 }
@@ -274,4 +293,100 @@ async function shareItemToChat(actor, item) {
     speaker: ChatMessage.getSpeaker({ actor }),
     content: `<h3>${item.name}</h3>${html}`,
   });
+}
+
+/* ================================================================
+ *  Basic Malice helpers
+ * ================================================================ */
+
+async function showMaliciousStrikeDialog(actor) {
+  const { DialogV2 } = foundry.applications.api;
+
+  const chars = actor.system.characteristics ?? {};
+  let highestChar = 0;
+  for (const key of Object.keys(chars)) {
+    const val = Number(chars[key]?.value ?? 0);
+    if (val > highestChar) highestChar = val;
+  }
+  if (highestChar < 1) highestChar = 1;
+
+  const currentMalice = game.actors.malice?.value ?? "?";
+  const minMalice = 5;
+  // Each additional Malice above 5 adds +1 damage; max damage = 3 × highestChar
+  const maxMalice = minMalice + (3 * highestChar - highestChar); // = 5 + 2 * highestChar
+  const baseDamage = highestChar;
+
+  const content = `<div style="padding:4px 0">
+    <p style="margin-bottom:8px"><em>The monster pours all their animosity into their attack. Their next strike deals extra damage to one target equal to the monster's highest characteristic (${highestChar}). The extra damage increases by 1 for each additional Malice spent (maximum ${3 * highestChar}).</em></p>
+    <p><strong>Current Malice: ${currentMalice}</strong></p>
+    <div style="margin:8px 0">
+      <label>Malice to Spend: <span id="dsahud-ms-spend">${minMalice}</span></label><br>
+      <input type="range" id="dsahud-ms-slider" min="${minMalice}" max="${maxMalice}" value="${minMalice}" step="1" style="width:100%;margin-top:4px">
+    </div>
+    <p>Extra Damage: <strong id="dsahud-ms-damage">${baseDamage}</strong></p>
+  </div>`;
+
+  let maliceToSpend = null;
+  await DialogV2.wait({
+    window: { title: "Malicious Strike (5+ Malice)" },
+    position: { width: 480 },
+    content,
+    buttons: [
+      {
+        action: "ok",
+        label: "Post to Chat",
+        icon: "fa-solid fa-comment",
+        default: true,
+        callback: (event, button, dialog) => {
+          const slider = dialog.element.querySelector("#dsahud-ms-slider");
+          maliceToSpend = Number(slider?.value ?? minMalice);
+        },
+      },
+      { action: "cancel", label: "Cancel" },
+    ],
+    render: (event, dialog) => {
+      const slider = dialog.element.querySelector("#dsahud-ms-slider");
+      const spendEl = dialog.element.querySelector("#dsahud-ms-spend");
+      const damageEl = dialog.element.querySelector("#dsahud-ms-damage");
+      if (!slider) return;
+      slider.addEventListener("input", () => {
+        const spend = Number(slider.value);
+        if (spendEl) spendEl.textContent = spend;
+        if (damageEl) damageEl.textContent = baseDamage + (spend - minMalice);
+      });
+    },
+    rejectClose: false,
+  });
+
+  if (maliceToSpend === null) return;
+
+  const remaining = await spendMalice(actor, maliceToSpend);
+  if (remaining === false) return;
+
+  const extraDamage = baseDamage + (maliceToSpend - minMalice);
+  const damageEnricher = `[[/damage ${extraDamage}]]`;
+  const enriched = await TextEditor.enrichHTML(damageEnricher, { rollData: actor.getRollData(), async: true });
+
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content: `<h3>Malicious Strike</h3>
+      <p>Spent <strong>${maliceToSpend} Malice</strong>.</p>
+      <p>Extra damage to one target: ${enriched}</p>
+      <p>Malice remaining: ${remaining}</p>
+      <p><em>This feature can't be used two rounds in a row, even by different monsters.</em></p>`,
+  });
+}
+
+async function spendMalice(actor, amount) {
+  const current = game.actors.malice?.value ?? 0;
+  if (current < amount) {
+    ui.notifications.warn(`Not enough Malice! (need ${amount}, have ${current})`);
+    return false;
+  }
+  try {
+    await actor.system.updateResource(-amount);
+    return (game.actors.malice?.value ?? current - amount);
+  } catch {
+    return false;
+  }
 }

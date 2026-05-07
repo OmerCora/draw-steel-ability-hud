@@ -30,6 +30,7 @@ function abilityEntry(item) {
     emoji,
     actionType: "ability",
     actionId: item.id,
+    abilityType: item.system.type ?? "",
   };
 }
 
@@ -540,7 +541,7 @@ export async function buildCharacterData(actor) {
       return {
         id,
         name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
-        icon: cfg.icon ?? null,
+        icon: cfg.img ?? cfg.icon ?? null,
         active: activeStatuses.has(id),
       };
     });
@@ -651,6 +652,14 @@ export async function buildItemsData(actor) {
   const sections = [];
   const items = actor.items;
 
+  // Kit (equipment tab)
+  const kits = [];
+  for (const item of items) {
+    if (item.type !== "kit") continue;
+    kits.push(featureEntry(item, "fa-solid fa-shield-halved"));
+  }
+  if (kits.length) sections.push({ title: loc("DSAHUD.Sections.Kit"), items: kits });
+
   const consumable = [];
   const trinket = [];
   const leveled = [];
@@ -678,7 +687,6 @@ export async function buildItemsData(actor) {
  * ================================================================ */
 
 export async function buildFeaturesData(actor) {
-  const sections = [];
   const items = actor.items;
 
   const features = [];
@@ -697,13 +705,34 @@ export async function buildFeaturesData(actor) {
     }
   }
 
-  if (features.length) sections.push({ title: loc("DSAHUD.Sections.Feature"), items: features });
-  if (ancestryTraits.length) sections.push({ title: loc("DSAHUD.Sections.AncestryTrait"), items: ancestryTraits });
-  if (perks.length) sections.push({ title: loc("DSAHUD.Sections.Perk"), items: perks });
-  if (titles.length) sections.push({ title: loc("DSAHUD.Sections.Title"), items: titles });
-  if (complications.length) sections.push({ title: loc("DSAHUD.Sections.Complication"), items: complications });
+  // Build ordered list of all sections, then balance into two columns greedily.
+  // Each section costs 1 (for the title) + item count rows.
+  const allSections = [];
+  if (features.length) allSections.push({ title: loc("DSAHUD.Sections.Feature"), items: features });
+  if (ancestryTraits.length) allSections.push({ title: loc("DSAHUD.Sections.AncestryTrait"), items: ancestryTraits });
+  if (perks.length) allSections.push({ title: loc("DSAHUD.Sections.Perk"), items: perks });
+  if (titles.length) allSections.push({ title: loc("DSAHUD.Sections.Title"), items: titles });
+  if (complications.length) allSections.push({ title: loc("DSAHUD.Sections.Complication"), items: complications });
 
-  return sections;
+  const leftSections = [];
+  const rightSections = [];
+  let leftCount = 0;
+  let rightCount = 0;
+  for (const section of allSections) {
+    const cost = 1 + section.items.length;
+    if (leftCount <= rightCount) {
+      leftSections.push(section);
+      leftCount += cost;
+    } else {
+      rightSections.push(section);
+      rightCount += cost;
+    }
+  }
+
+  // Combined sections for popup-visibility check (sections.length > 0)
+  const sections = [...leftSections, ...rightSections];
+
+  return { sections, leftSections, rightSections, featuresPanel: true };
 }
 
 /* ================================================================
@@ -760,6 +789,15 @@ export async function buildMonsterData(actor) {
     charItems.push(charEntry(name, data.value));
   }
   if (charItems.length) sections.push({ title: loc("DSAHUD.Sections.AbilityTest"), items: charItems });
+
+  // Basic Malice (universal monster abilities available to all monsters)
+  sections.push({
+    title: loc("DSAHUD.Sections.BasicMalice"),
+    items: [
+      staticEntry("brutalEffectiveness", loc("DSAHUD.Actions.BrutalEffectiveness"), "fa-solid fa-bullseye", "brutalEffectiveness", "3"),
+      staticEntry("maliciousStrike", loc("DSAHUD.Actions.MaliciousStrike"), "fa-solid fa-burst", "maliciousStrike", "5+"),
+    ],
+  });
 
   // Malice (No Action type abilities)
   const malice = [];
@@ -864,7 +902,7 @@ export async function buildMonsterData(actor) {
       return {
         id,
         name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
-        icon: cfg.icon ?? null,
+        icon: cfg.img ?? cfg.icon ?? null,
         active: activeStatuses.has(id),
       };
     });
