@@ -6,6 +6,15 @@ import { MODULE_ID } from "./config.mjs";
 
 function loc(key) { return game.i18n.localize(key); }
 
+function statusEffectConfigById(id) {
+  const se = CONFIG.statusEffects;
+  if (!se) return {};
+  const keyed = se[id];
+  if (keyed && typeof keyed === "object") return keyed;
+  if (typeof se.find === "function") return se.find(e => e.id === id) ?? {};
+  return {};
+}
+
 function modifier(val) {
   const n = Number(val);
   return n >= 0 ? `+${n}` : `${n}`;
@@ -537,7 +546,7 @@ export async function buildCharacterData(actor) {
     const activeStatuses = actor.statuses ?? new Set();
     const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
     conditions = DS_CONDITIONS.map(id => {
-      const cfg = CONFIG.statusEffects[id] ?? {};
+      const cfg = statusEffectConfigById(id);
       return {
         id,
         name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
@@ -898,7 +907,7 @@ export async function buildMonsterData(actor) {
     const activeStatuses = actor.statuses ?? new Set();
     const DS_CONDITIONS = ["bleeding", "dazed", "frightened", "grabbed", "prone", "restrained", "slowed", "surprised", "taunted", "weakened"];
     conditions = DS_CONDITIONS.map(id => {
-      const cfg = CONFIG.statusEffects[id] ?? {};
+      const cfg = statusEffectConfigById(id);
       return {
         id,
         name: cfg.name ?? (id.charAt(0).toUpperCase() + id.slice(1)),
